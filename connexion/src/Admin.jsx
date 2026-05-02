@@ -1,0 +1,424 @@
+import React, { useState, useEffect } from 'react';
+import {
+  ChevronLeft, Shield, Users, Heart, MessageCircle, Activity,
+  Trash2, Edit3, Plus, Check, X, MapPin, Star, Ban, Crown
+} from 'lucide-react';
+
+const BASE = 'http://localhost:3001/api';
+const G = 'bg-gradient-to-r from-[#0089CF] to-[#12AD2B]';
+
+function req(method, path, body) {
+  const token = localStorage.getItem('token');
+  return fetch(`${BASE}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+}
+
+const COLORS = [
+  'from-pink-400 to-purple-500', 'from-blue-400 to-cyan-500',
+  'from-orange-400 to-red-500',  'from-green-400 to-teal-500',
+  'from-yellow-400 to-orange-500','from-purple-400 to-pink-500',
+  'from-indigo-400 to-blue-500', 'from-red-400 to-pink-500',
+  'from-emerald-400 to-green-500','from-violet-400 to-fuchsia-500',
+];
+
+// ─── STAT CARD ────────────────────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, color }) {
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      <p className="text-2xl font-black text-gray-900">{value ?? '–'}</p>
+      <p className="text-gray-400 text-xs mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-[430px] bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inp = "w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:border-[#0089CF] focus:outline-none transition-colors";
+
+// ─── STATS TAB ────────────────────────────────────────────────────────────────
+function StatsTab() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    req('GET', '/admin/stats').then(setStats).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center pt-16"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#0089CF] animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-gray-400 text-sm">Vue d'ensemble de la plateforme</p>
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard icon={Users}         label="Utilisateurs"  value={stats?.totalUsers}    color="bg-[#0089CF]" />
+        <StatCard icon={Heart}         label="Matchs"        value={stats?.totalMatches}  color="bg-[#FD297B]" />
+        <StatCard icon={MessageCircle} label="Messages"      value={stats?.totalMessages} color="bg-purple-500" />
+        <StatCard icon={Activity}      label="Swipes"        value={stats?.totalSwipes}   color="bg-orange-500" />
+      </div>
+    </div>
+  );
+}
+
+// ─── USERS TAB ────────────────────────────────────────────────────────────────
+function UsersTab() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { load(); }, []);
+
+  const load = () => {
+    setLoading(true);
+    req('GET', '/admin/users').then(setUsers).catch(console.error).finally(() => setLoading(false));
+  };
+
+  const startEdit = (u) => { setEditing(u); setDraft({ name: u.name, age: u.age, city: u.city, bio: u.bio, isAdmin: u.isAdmin, isBanned: u.isBanned }); setError(''); };
+
+  const save = async () => {
+    setSaving(true); setError('');
+    try {
+      await req('PUT', `/admin/users/${editing.id}`, draft);
+      setEditing(null); load();
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const del = async (u) => {
+    if (!confirm(`Supprimer ${u.name} ?`)) return;
+    try { await req('DELETE', `/admin/users/${u.id}`); load(); }
+    catch (e) { alert(e.message); }
+  };
+
+  const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
+  if (loading) return <div className="flex justify-center pt-16"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#0089CF] animate-spin" /></div>;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-gray-400 text-sm">{users.length} compte{users.length !== 1 ? 's' : ''} enregistré{users.length !== 1 ? 's' : ''}</p>
+      {users.map(u => (
+        <div key={u.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0089CF] to-[#12AD2B] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              {u.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-gray-900 text-sm">{u.name}</span>
+                {u.isAdmin && <Crown className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" fill="currentColor" />}
+                {u.isBanned && <Ban className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
+              </div>
+              <p className="text-gray-400 text-xs truncate">{u.email}</p>
+              <p className="text-gray-400 text-xs">{u.city} · {u.age} ans</p>
+            </div>
+            <div className="flex gap-1.5 flex-shrink-0">
+              <button onClick={() => startEdit(u)} className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+                <Edit3 className="w-3.5 h-3.5 text-blue-500" />
+              </button>
+              {!u.isAdmin && (
+                <button onClick={() => del(u)} className="p-2 rounded-xl bg-red-50 hover:bg-red-100 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {editing && (
+        <Modal title={`Modifier — ${editing.name}`} onClose={() => setEditing(null)}>
+          {error && <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm">{error}</div>}
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1"><Field label="Prénom"><input value={draft.name || ''} onChange={set('name')} className={inp} /></Field></div>
+              <div style={{width:'75px'}}><Field label="Âge"><input type="number" value={draft.age || ''} onChange={set('age')} className={inp} /></Field></div>
+            </div>
+            <Field label="Ville"><input value={draft.city || ''} onChange={set('city')} className={inp} /></Field>
+            <Field label="Bio"><textarea value={draft.bio || ''} onChange={set('bio')} rows={2} className={`${inp} resize-none`} /></Field>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={!!draft.isAdmin} onChange={set('isAdmin')} className="w-4 h-4 accent-yellow-500" />
+                <span className="text-sm text-gray-700">Administrateur</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={!!draft.isBanned} onChange={set('isBanned')} className="w-4 h-4 accent-red-500" />
+                <span className="text-sm text-gray-700">Banni</span>
+              </label>
+            </div>
+            <button onClick={save} disabled={saving}
+              className={`w-full py-3 rounded-xl ${G} text-white font-bold text-sm disabled:opacity-60`}>
+              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── PROFILES TAB ─────────────────────────────────────────────────────────────
+function ProfilesTab() {
+  const [profiles, setProfiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null); // null | 'add' | profile object
+  const [draft, setDraft] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { load(); }, []);
+
+  const load = () => {
+    setLoading(true);
+    req('GET', '/admin/profiles').then(setProfiles).catch(console.error).finally(() => setLoading(false));
+  };
+
+  const openAdd  = () => { setModal('add'); setDraft({ name:'', age:'', city:'', bio:'', tags:'', color: COLORS[0], compatibility: 80 }); setError(''); };
+  const openEdit = (p)  => { setModal(p); setDraft({ name: p.name, age: p.age, city: p.city, bio: p.bio, tags: (p.tags||[]).join(', '), color: p.color, compatibility: p.compatibility }); setError(''); };
+
+  const save = async () => {
+    setSaving(true); setError('');
+    const payload = {
+      ...draft,
+      age: parseInt(draft.age),
+      tags: draft.tags ? draft.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      compatibility: parseInt(draft.compatibility) || 75,
+    };
+    try {
+      if (modal === 'add') await req('POST', '/admin/profiles', payload);
+      else                  await req('PUT', `/admin/profiles/${modal.id}`, payload);
+      setModal(null); load();
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const del = async (p) => {
+    if (!confirm(`Supprimer le profil de ${p.name} ?`)) return;
+    try { await req('DELETE', `/admin/profiles/${p.id}`); load(); }
+    catch (e) { alert(e.message); }
+  };
+
+  const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.value }));
+
+  if (loading) return <div className="flex justify-center pt-16"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#0089CF] animate-spin" /></div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-gray-400 text-sm">{profiles.length} profil{profiles.length !== 1 ? 's' : ''}</p>
+        <button onClick={openAdd} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl ${G} text-white text-xs font-bold shadow-sm`}>
+          <Plus className="w-3.5 h-3.5" /> Ajouter
+        </button>
+      </div>
+
+      {profiles.map(p => (
+        <div key={p.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${p.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+              {p.initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="font-bold text-gray-900 text-sm">{p.name}, {p.age}</span>
+              <div className="flex items-center gap-1 text-gray-400 text-xs mt-0.5">
+                <MapPin className="w-3 h-3" />{p.city}
+                <span className="ml-2 text-[#0089CF] font-semibold">{p.compatibility}%</span>
+              </div>
+              {(p.tags||[]).length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {p.tags.slice(0,3).map(t => (
+                    <span key={t} className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px]">{t}</span>
+                  ))}
+                  {p.tags.length > 3 && <span className="text-gray-400 text-[10px]">+{p.tags.length - 3}</span>}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-1.5 flex-shrink-0">
+              <button onClick={() => openEdit(p)} className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+                <Edit3 className="w-3.5 h-3.5 text-blue-500" />
+              </button>
+              <button onClick={() => del(p)} className="p-2 rounded-xl bg-red-50 hover:bg-red-100 transition-colors">
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {modal && (
+        <Modal title={modal === 'add' ? 'Ajouter un profil' : `Modifier — ${modal.name}`} onClose={() => setModal(null)}>
+          {error && <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm">{error}</div>}
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1"><Field label="Prénom"><input value={draft.name} onChange={set('name')} className={inp} /></Field></div>
+              <div style={{width:'75px'}}><Field label="Âge"><input type="number" value={draft.age} onChange={set('age')} className={inp} /></Field></div>
+            </div>
+            <Field label="Ville"><input value={draft.city} onChange={set('city')} className={inp} /></Field>
+            <Field label="Bio"><textarea value={draft.bio} onChange={set('bio')} rows={2} className={`${inp} resize-none`} /></Field>
+            <Field label="Tags (séparés par virgule)"><input value={draft.tags} onChange={set('tags')} placeholder="Voyage, Musique, Sport" className={inp} /></Field>
+            <Field label={`Compatibilité : ${draft.compatibility}%`}>
+              <input type="range" min="0" max="100" value={draft.compatibility} onChange={set('compatibility')} className="w-full accent-[#0089CF]" />
+            </Field>
+            <Field label="Couleur du profil">
+              <div className="flex flex-wrap gap-2 mt-1">
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => setDraft(d => ({...d, color: c}))}
+                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${c} ${draft.color === c ? 'ring-2 ring-offset-1 ring-[#0089CF]' : ''}`} />
+                ))}
+              </div>
+            </Field>
+            <button onClick={save} disabled={saving}
+              className={`w-full py-3 rounded-xl ${G} text-white font-bold text-sm disabled:opacity-60`}>
+              {saving ? 'Sauvegarde...' : modal === 'add' ? 'Ajouter' : 'Sauvegarder'}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── MATCHES TAB ──────────────────────────────────────────────────────────────
+function MatchesTab() {
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    req('GET', '/admin/matches').then(setMatches).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center pt-16"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#0089CF] animate-spin" /></div>;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-gray-400 text-sm">{matches.length} match{matches.length !== 1 ? 's' : ''} au total</p>
+      {matches.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">Aucun match pour l'instant</div>
+      ) : matches.map((m, i) => (
+        <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+          <Heart className="w-5 h-5 text-[#FD297B] flex-shrink-0" fill="#FD297B" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-800 text-sm">
+              <span className="text-[#0089CF]">{m.userName}</span>
+              {' '}❤️{' '}
+              <span className="text-[#FD297B]">{m.profileName}</span>
+            </p>
+            <p className="text-gray-400 text-xs mt-0.5">{new Date(m.date).toLocaleDateString('fr-FR')}</p>
+          </div>
+          {m.superliked && <Star className="w-4 h-4 text-blue-400 fill-blue-400 flex-shrink-0" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MESSAGES TAB ─────────────────────────────────────────────────────────────
+function MessagesTab() {
+  const [convs, setConvs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    req('GET', '/admin/messages').then(setConvs).catch(console.error).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center pt-16"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#0089CF] animate-spin" /></div>;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-gray-400 text-sm">{convs.length} conversation{convs.length !== 1 ? 's' : ''}</p>
+      {convs.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">Aucune conversation</div>
+      ) : convs.map((c, i) => (
+        <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-400 font-mono truncate">{c.convId}</span>
+            <span className="text-xs font-bold text-[#0089CF] flex-shrink-0 ml-2">{c.count} msg</span>
+          </div>
+          <p className="text-gray-600 text-sm truncate">"{c.last}"</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN ADMIN ───────────────────────────────────────────────────────────────
+export default function AdminPanel({ onBack }) {
+  const [tab, setTab] = useState('stats');
+
+  const tabs = [
+    { id: 'stats',    label: 'Stats',     icon: Activity },
+    { id: 'users',    label: 'Membres',   icon: Users },
+    { id: 'profiles', label: 'Profils',   icon: Heart },
+    { id: 'matches',  label: 'Matchs',    icon: Star },
+    { id: 'messages', label: 'Messages',  icon: MessageCircle },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="w-full max-w-[430px] h-screen flex flex-col bg-gray-50 relative overflow-hidden">
+        {/* Header */}
+        <div className={`${G} px-5 pt-12 pb-4 flex items-center gap-3 flex-shrink-0`}>
+          <button onClick={onBack} className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+          <Shield className="w-6 h-6 text-white" />
+          <div>
+            <h1 className="text-white font-black text-lg leading-tight">Administration</h1>
+            <p className="text-white/70 text-xs">Djibouti-Rencontre</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex bg-white border-b border-gray-100 flex-shrink-0 overflow-x-auto">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-2.5 flex-shrink-0 transition-colors border-b-2 ${tab === id ? 'border-[#0089CF] text-[#0089CF]' : 'border-transparent text-gray-400'}`}>
+              <Icon className="w-4 h-4" />
+              <span className="text-[10px] font-semibold">{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
+          {tab === 'stats'    && <StatsTab />}
+          {tab === 'users'    && <UsersTab />}
+          {tab === 'profiles' && <ProfilesTab />}
+          {tab === 'matches'  && <MatchesTab />}
+          {tab === 'messages' && <MessagesTab />}
+        </div>
+      </div>
+    </div>
+  );
+}
