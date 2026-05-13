@@ -172,6 +172,24 @@ async function initData() {
   }
 }
 
+// ─── DB CONNECTION MIDDLEWARE (serverless cache) ───────────────────────────────
+
+let _dbPromise = null;
+function connectOnce() {
+  if (!_dbPromise) {
+    _dbPromise = mongoose.connect(MONGODB_URI).then(async () => {
+      console.log('✅ MongoDB connecté');
+      await initData();
+    });
+  }
+  return _dbPromise;
+}
+
+app.use(async (req, res, next) => {
+  try { await connectOnce(); next(); }
+  catch (e) { res.status(503).json({ error: 'Base de données indisponible' }); }
+});
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 app.post('/api/auth/register',
@@ -506,16 +524,20 @@ app.use((err, req, res, _next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 
-mongoose.connect(MONGODB_URI)
-  .then(async () => {
-    console.log('✅ MongoDB connecté');
-    await initData();
-    app.listen(PORT, () => {
-      console.log(`\n🔥 Serveur Djibouti-Rencontre démarré sur http://localhost:${PORT}`);
-      console.log('🔒 Sécurité : MongoDB + JWT + bcrypt + Helmet + Rate Limiting\n');
+if (!process.env.VERCEL) {
+  mongoose.connect(MONGODB_URI)
+    .then(async () => {
+      console.log('✅ MongoDB connecté');
+      await initData();
+      app.listen(PORT, () => {
+        console.log(`\n🔥 Serveur Djibouti-Rencontre démarré sur http://localhost:${PORT}`);
+        console.log('🔒 Sécurité : MongoDB + JWT + bcrypt + Helmet + Rate Limiting\n');
+      });
+    })
+    .catch(err => {
+      console.error('❌ Erreur de connexion MongoDB :', err.message);
+      process.exit(1);
     });
-  })
-  .catch(err => {
-    console.error('❌ Erreur de connexion MongoDB :', err.message);
-    process.exit(1);
-  });
+}
+
+module.exports = app;
