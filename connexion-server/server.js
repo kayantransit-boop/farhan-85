@@ -187,7 +187,7 @@ function connectOnce() {
 
 app.use(async (req, res, next) => {
   try { await connectOnce(); next(); }
-  catch (e) { res.status(503).json({ error: 'Base de données indisponible' }); }
+  catch (e) { res.status(503).json({ error: 'Base de données indisponible', detail: e.message }); }
 });
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
