@@ -524,22 +524,20 @@ app.use((err, req, res, _next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 
-const dbConnect = mongoose.connect(MONGODB_URI)
-  .then(async () => {
-    console.log('✅ MongoDB connecté');
-    await initData();
-  })
-  .catch(err => {
-    console.error('❌ Erreur de connexion MongoDB :', err.message);
-  });
-
 if (!process.env.VERCEL) {
-  dbConnect.then(() => {
-    app.listen(PORT, () => {
-      console.log(`\n🔥 Serveur Djibouti-Rencontre démarré sur http://localhost:${PORT}`);
-      console.log('🔒 Sécurité : MongoDB + JWT + bcrypt + Helmet + Rate Limiting\n');
+  mongoose.connect(MONGODB_URI)
+    .then(async () => {
+      console.log('✅ MongoDB connecté');
+      await initData();
+      app.listen(PORT, () => {
+        console.log(`\n🔥 Serveur Djibouti-Rencontre démarré sur http://localhost:${PORT}`);
+        console.log('🔒 Sécurité : MongoDB + JWT + bcrypt + Helmet + Rate Limiting\n');
+      });
+    })
+    .catch(err => {
+      console.error('❌ Erreur de connexion MongoDB :', err.message);
+      process.exit(1);
     });
-  });
 }
 
 module.exports = app;
