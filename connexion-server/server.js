@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
   tags: { type: [String], default: [] },
   isAdmin: { type: Boolean, default: false },
   isBanned: { type: Boolean, default: false },
+  photo: { type: String, default: '' },
 }, { timestamps: true });
 
 const profileSchema = new mongoose.Schema({
@@ -72,11 +73,28 @@ const messageSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
-const User    = mongoose.model('User',    userSchema);
-const Profile = mongoose.model('Profile', profileSchema);
-const Swipe   = mongoose.model('Swipe',   swipeSchema);
-const Match   = mongoose.model('Match',   matchSchema);
-const Message = mongoose.model('Message', messageSchema);
+const userSwipeSchema = new mongoose.Schema({
+  fromUserId: { type: String, required: true },
+  toUserId:   { type: String, required: true },
+  action: { type: String, enum: ['like', 'pass', 'superlike'] },
+  date: { type: Date, default: Date.now },
+});
+userSwipeSchema.index({ fromUserId: 1, toUserId: 1 }, { unique: true });
+
+const userMatchSchema = new mongoose.Schema({
+  _id:    String,
+  user1Id: { type: String, required: true },
+  user2Id: { type: String, required: true },
+  date: { type: Date, default: Date.now },
+});
+
+const User      = mongoose.model('User',      userSchema);
+const Profile   = mongoose.model('Profile',   profileSchema);
+const Swipe     = mongoose.model('Swipe',     swipeSchema);
+const Match     = mongoose.model('Match',     matchSchema);
+const Message   = mongoose.model('Message',   messageSchema);
+const UserSwipe = mongoose.model('UserSwipe', userSwipeSchema);
+const UserMatch = mongoose.model('UserMatch', userMatchSchema);
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────────────────────
 
@@ -351,6 +369,102 @@ app.post('/api/messages/:profileId', auth,
       from: req.user.userId,
       text: sanitize(req.body.text, 1000),
     });
+    res.status(201).json(msg);
+  }
+);
+
+// ─── USER-TO-USER DISCOVERY ───────────────────────────────────────────────────
+
+app.get('/api/users/discover', auth, async (req, res) => {
+  const swiped = await UserSwipe.find({ fromUserId: req.user.userId }).distinct('toUserId');
+  const matched1 = await UserMatch.find({ user1Id: req.user.userId }).distinct('user2Id');
+  const matched2 = await UserMatch.find({ user2Id: req.user.userId }).distinct('user1Id');
+  const excluded = [...new Set([...swiped, ...matched1, ...matched2, req.user.userId])];
+  const users = await User.find({ _id: { $nin: excluded }, isBanned: false, isAdmin: false })
+    .select('_id name age city bio tags photo').limit(20);
+  res.json(users.map(u => ({
+    id: u._id, name: u.name, age: u.age, city: u.city,
+    bio: u.bio, tags: u.tags, photo: u.photo,
+    initials: u.name.slice(0, 2).toUpperCase(),
+    color: 'from-[#0089CF] to-[#12AD2B]',
+    compatibility: Math.floor(Math.random() * 35) + 60,
+    isUser: true,
+  })));
+});
+
+app.post('/api/users/swipe/:targetId', auth,
+  body('action').isIn(['like', 'pass', 'superlike']),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Action invalide' });
+    const { targetId } = req.params;
+    const { action } = req.body;
+    if (targetId === req.user.userId) return res.status(400).json({ error: 'Impossible de se swiper soi-même' });
+    try {
+      await UserSwipe.create({ fromUserId: req.user.userId, toUserId: targetId, action });
+    } catch (e) {
+      if (e.code === 11000) return res.status(409).json({ error: 'Déjà swipé' });
+      throw e;
+    }
+    let isMatch = false;
+    if (action === 'like' || action === 'superlike') {
+      const mutual = await UserSwipe.findOne({ fromUserId: targetId, toUserId: req.user.userId, action: { $in: ['like', 'superlike'] } });
+      if (mutual) {
+        isMatch = true;
+        const existing = await UserMatch.findOne({
+          $or: [{ user1Id: req.user.userId, user2Id: targetId }, { user1Id: targetId, user2Id: req.user.userId }],
+        });
+        if (!existing) {
+          const matchId = uuidv4();
+          await UserMatch.create({ _id: matchId, user1Id: req.user.userId, user2Id: targetId });
+          const convId = [req.user.userId, targetId].sort().join('__');
+          await Message.create({ _id: uuidv4(), convId, from: targetId, text: 'Salut ! On est en match 🎉' });
+        }
+      }
+    }
+    res.json({ isMatch });
+  }
+);
+
+app.get('/api/users/matches', auth, async (req, res) => {
+  const matches = await UserMatch.find({
+    $or: [{ user1Id: req.user.userId }, { user2Id: req.user.userId }],
+  });
+  const otherIds = matches.map(m => m.user1Id === req.user.userId ? m.user2Id : m.user1Id);
+  const users = await User.find({ _id: { $in: otherIds } }).select('_id name age city bio tags photo');
+  const userMap = Object.fromEntries(users.map(u => [u._id, u]));
+  res.json(matches.map(m => {
+    const otherId = m.user1Id === req.user.userId ? m.user2Id : m.user1Id;
+    const u = userMap[otherId];
+    if (!u) return null;
+    return {
+      id: m._id, matchUserId: otherId,
+      name: u.name, age: u.age, city: u.city, photo: u.photo,
+      initials: u.name.slice(0, 2).toUpperCase(),
+      color: 'from-[#0089CF] to-[#12AD2B]',
+      date: m.date,
+    };
+  }).filter(Boolean));
+});
+
+app.get('/api/users/messages/:matchUserId', auth, async (req, res) => {
+  const convId = [req.user.userId, req.params.matchUserId].sort().join('__');
+  const msgs = await Message.find({ convId }).sort({ date: 1 });
+  res.json(msgs);
+});
+
+app.post('/api/users/messages/:matchUserId', auth,
+  body('text').trim().isLength({ min: 1, max: 1000 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Message invalide' });
+    const { matchUserId } = req.params;
+    const isMatch = await UserMatch.findOne({
+      $or: [{ user1Id: req.user.userId, user2Id: matchUserId }, { user1Id: matchUserId, user2Id: req.user.userId }],
+    });
+    if (!isMatch) return res.status(403).json({ error: 'Pas de match avec cet utilisateur' });
+    const convId = [req.user.userId, matchUserId].sort().join('__');
+    const msg = await Message.create({ _id: uuidv4(), convId, from: req.user.userId, text: sanitize(req.body.text, 1000) });
     res.status(201).json(msg);
   }
 );
