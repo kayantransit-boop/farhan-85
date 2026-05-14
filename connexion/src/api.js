@@ -33,3 +33,5 @@ export const swipeUser        = (targetId, action)      => req('POST', `/users/s
 export const getUserMatches   = ()                      => req('GET',  '/users/matches');
 export const getUserMessages  = (matchUserId)           => req('GET',  `/users/messages/${matchUserId}`);
 export const sendUserMessage  = (matchUserId, text)     => req('POST', `/users/messages/${matchUserId}`, { text });
+export const heartbeat        = ()                      => req('POST', '/users/heartbeat');
+export const getUserStatus    = (userId)                => req('GET',  `/users/status/${userId}`);

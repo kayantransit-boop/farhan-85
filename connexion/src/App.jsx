@@ -8,6 +8,21 @@ import AdminPanel from './Admin';
 
 const G = 'bg-gradient-to-r from-[#0089CF] to-[#12AD2B]';
 
+function Avatar({ photo, initials, color, size = 14, online = false }) {
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size * 4, height: size * 4 }}>
+      {photo
+        ? <img src={photo} alt={initials} className="w-full h-full rounded-full object-cover" />
+        : <div className={`w-full h-full rounded-full bg-gradient-to-br ${color || 'from-pink-400 to-purple-500'} flex items-center justify-center font-bold text-white`}
+            style={{ fontSize: size * 1.1 }}>{initials}</div>
+      }
+      {online && (
+        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+      )}
+    </div>
+  );
+}
+
 function Logo({ size = 'md' }) {
   const sizes = {
     sm: { wrap: 'w-8 h-8', heart: 'w-4 h-4', pin: 'w-3 h-3', text: 'text-base', sub: 'text-[10px]' },
@@ -291,17 +306,15 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
 }
 
 // ─── MATCHES ──────────────────────────────────────────────────────────────────
-function MatchCard({ name, photo, initials, color, city, age, badge, onClick }) {
+function MatchCard({ name, photo, initials, color, city, age, online, badge, onClick }) {
   return (
     <button onClick={onClick} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-      {photo
-        ? <img src={photo} alt={name} className="w-14 h-14 rounded-full object-cover flex-shrink-0 ring-2 ring-[#FD297B]/15" />
-        : <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-lg font-bold text-white flex-shrink-0 ring-2 ring-[#FD297B]/15`}>{initials}</div>
-      }
+      <Avatar photo={photo} initials={initials} color={color} size={14} online={online} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-gray-900 font-bold">{name}</span>
-          {badge && <span className="text-[10px] bg-[#0089CF] text-white px-1.5 py-0.5 rounded-full font-bold">UTILISATEUR</span>}
+          {online && <span className="text-[10px] text-green-500 font-semibold">● En ligne</span>}
+          {badge && !online && <span className="text-[10px] bg-[#0089CF] text-white px-1.5 py-0.5 rounded-full font-bold">UTILISATEUR</span>}
         </div>
         <p className="text-gray-400 text-sm">{city} · {age} ans</p>
       </div>
@@ -331,8 +344,8 @@ function MatchesScreen({ matches, userMatches, onChat, loading }) {
       ) : (
         <div className="flex-1 overflow-y-auto divide-y divide-gray-50 pb-20">
           {userMatches.map(m => (
-            <MatchCard key={`u_${m.id}`} name={m.name} photo={m.photo} initials={m.initials}
-              color={m.color} city={m.city} age={m.age} badge onClick={() => onChat(m)} />
+            <MatchCard key={`u_${m.matchUserId}`} name={m.name} photo={m.photo} initials={m.initials}
+              color={m.color} city={m.city} age={m.age} online={m.online} badge onClick={() => onChat(m)} />
           ))}
           {matches.map(m => (
             <MatchCard key={`p_${m.id}`} name={m.profile?.name} photo={m.profile?.photo}
@@ -350,10 +363,10 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
   if (activeConv) {
     const key = `${activeConvType === 'user' ? 'u' : 'p'}_${activeConv}`;
     const messages = convs[key] || [];
-    let name, photo, initials, color, isUser = activeConvType === 'user';
+    let name, photo, initials, color, online = false, isUser = activeConvType === 'user';
     if (isUser) {
       const um = userMatches.find(m => m.matchUserId === activeConv);
-      name = um?.name; photo = um?.photo; initials = um?.initials; color = um?.color;
+      name = um?.name; photo = um?.photo; initials = um?.initials; color = um?.color; online = !!um?.online;
     } else {
       const pm = matches.find(m => m.profileId === activeConv);
       name = pm?.profile?.name; photo = pm?.profile?.photo;
@@ -366,14 +379,11 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
           <button onClick={() => setActiveConv(null)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          {photo
-            ? <img src={photo} alt={name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-            : <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{initials}</div>
-          }
+          <Avatar photo={photo} initials={initials} color={color} size={10} online={isUser && online} />
           <div>
             <p className="text-gray-900 font-bold leading-tight">{name}</p>
-            <p className={`text-xs font-medium ${isUser ? 'text-green-500' : 'text-gray-400'}`}>
-              {isUser ? 'Utilisateur réel · messages en direct' : 'Profil'}
+            <p className={`text-xs font-medium ${isUser && online ? 'text-green-500' : 'text-gray-400'}`}>
+              {isUser ? (online ? '● En ligne maintenant' : 'Utilisateur réel · messages en direct') : 'Profil'}
             </p>
           </div>
         </div>
@@ -434,15 +444,13 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
             return (
               <button key={m.convKey} onClick={() => { setActiveConv(m.convId, m.isUser ? 'user' : 'profile'); onOpen(m.convId, m.isUser ? 'user' : 'profile'); }}
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-                {m.photo
-                  ? <img src={m.photo} alt={m.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
-                  : <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${m.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-lg font-bold text-white flex-shrink-0`}>{m.initials}</div>
-                }
+                <Avatar photo={m.photo} initials={m.initials} color={m.color} size={14} online={m.isUser && m.online} />
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-gray-900 font-bold truncate">{m.name}</span>
-                      {m.isUser && <span className="text-[9px] bg-[#0089CF] text-white px-1 py-0.5 rounded-full font-bold flex-shrink-0">LIVE</span>}
+                      {m.isUser && m.online && <span className="text-[9px] text-green-500 font-bold flex-shrink-0">● En ligne</span>}
+                      {m.isUser && !m.online && <span className="text-[9px] bg-[#0089CF] text-white px-1 py-0.5 rounded-full font-bold flex-shrink-0">LIVE</span>}
                     </div>
                   </div>
                   <p className="text-gray-400 text-sm truncate mt-0.5">
@@ -680,6 +688,14 @@ export default function App() {
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [activeConv, activeConvType]);
+
+  // Heartbeat toutes les 30 secondes
+  useEffect(() => {
+    if (appState !== 'main') return;
+    api.heartbeat().catch(() => {});
+    const hb = setInterval(() => api.heartbeat().catch(() => {}), 30000);
+    return () => clearInterval(hb);
+  }, [appState]);
 
   const loadProfiles = async () => {
     setLoadingP(true);

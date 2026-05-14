@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
   isAdmin: { type: Boolean, default: false },
   isBanned: { type: Boolean, default: false },
   photo: { type: String, default: '' },
+  lastSeen: { type: Date, default: null },
 }, { timestamps: true });
 
 const profileSchema = new mongoose.Schema({
@@ -372,6 +373,23 @@ app.post('/api/messages/:profileId', auth,
   }
 );
 
+// ─── ONLINE STATUS ────────────────────────────────────────────────────────────
+
+function isOnline(lastSeen) {
+  if (!lastSeen) return false;
+  return (Date.now() - new Date(lastSeen).getTime()) < 2 * 60 * 1000;
+}
+
+app.post('/api/users/heartbeat', auth, async (req, res) => {
+  await User.updateOne({ _id: req.user.userId }, { lastSeen: new Date() });
+  res.json({ ok: true });
+});
+
+app.get('/api/users/status/:userId', auth, async (req, res) => {
+  const u = await User.findById(req.params.userId).select('lastSeen');
+  res.json({ online: u ? isOnline(u.lastSeen) : false });
+});
+
 // ─── USER-TO-USER DISCOVERY ───────────────────────────────────────────────────
 
 app.get('/api/users/discover', auth, async (req, res) => {
@@ -380,14 +398,14 @@ app.get('/api/users/discover', auth, async (req, res) => {
   const matched2 = await UserMatch.find({ user2Id: req.user.userId }).distinct('user1Id');
   const excluded = [...new Set([...swiped, ...matched1, ...matched2, req.user.userId])];
   const users = await User.find({ _id: { $nin: excluded }, isBanned: false, isAdmin: false })
-    .select('_id name age city bio tags photo').limit(20);
+    .select('_id name age city bio tags photo lastSeen').limit(20);
   res.json(users.map(u => ({
     id: u._id, name: u.name, age: u.age, city: u.city,
     bio: u.bio, tags: u.tags, photo: u.photo,
     initials: u.name.slice(0, 2).toUpperCase(),
     color: 'from-[#0089CF] to-[#12AD2B]',
     compatibility: Math.floor(Math.random() * 35) + 60,
-    isUser: true,
+    isUser: true, online: isOnline(u.lastSeen),
   })));
 });
 
@@ -430,7 +448,7 @@ app.get('/api/users/matches', auth, async (req, res) => {
     $or: [{ user1Id: req.user.userId }, { user2Id: req.user.userId }],
   });
   const otherIds = matches.map(m => m.user1Id === req.user.userId ? m.user2Id : m.user1Id);
-  const users = await User.find({ _id: { $in: otherIds } }).select('_id name age city bio tags photo');
+  const users = await User.find({ _id: { $in: otherIds } }).select('_id name age city bio tags photo lastSeen');
   const userMap = Object.fromEntries(users.map(u => [u._id, u]));
   res.json(matches.map(m => {
     const otherId = m.user1Id === req.user.userId ? m.user2Id : m.user1Id;
@@ -441,6 +459,7 @@ app.get('/api/users/matches', auth, async (req, res) => {
       name: u.name, age: u.age, city: u.city, photo: u.photo,
       initials: u.name.slice(0, 2).toUpperCase(),
       color: 'from-[#0089CF] to-[#12AD2B]',
+      online: isOnline(u.lastSeen),
       date: m.date,
     };
   }).filter(Boolean));
