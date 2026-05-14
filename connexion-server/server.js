@@ -177,9 +177,12 @@ async function initData() {
 let _dbPromise = null;
 function connectOnce() {
   if (!_dbPromise) {
-    _dbPromise = mongoose.connect(MONGODB_URI).then(async () => {
+    _dbPromise = mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 }).then(async () => {
       console.log('✅ MongoDB connecté');
       await initData();
+    }).catch(err => {
+      _dbPromise = null;
+      throw err;
     });
   }
   return _dbPromise;
