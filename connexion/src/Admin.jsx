@@ -4,7 +4,7 @@ import {
   Trash2, Edit3, Plus, Check, X, MapPin, Star, Ban, Crown
 } from 'lucide-react';
 
-const BASE = 'http://localhost:3001/api';
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const G = 'bg-gradient-to-r from-[#0089CF] to-[#12AD2B]';
 
 function req(method, path, body) {
