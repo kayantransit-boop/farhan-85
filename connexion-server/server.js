@@ -45,6 +45,7 @@ const profileSchema = new mongoose.Schema({
   initials: String,
   color: String,
   compatibility: Number,
+  photo: { type: String, default: '' },
 });
 
 const swipeSchema = new mongoose.Schema({
@@ -442,7 +443,7 @@ app.post('/api/admin/profiles', adminAuth,
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ error: 'Données invalides' });
-    const { name, age, city, bio, tags, color, compatibility } = req.body;
+    const { name, age, city, bio, tags, color, compatibility, photo } = req.body;
     const COLORS = [
       'from-pink-400 to-purple-500', 'from-blue-400 to-cyan-500',
       'from-orange-400 to-red-500',  'from-green-400 to-teal-500',
@@ -462,6 +463,7 @@ app.post('/api/admin/profiles', adminAuth,
       compatibility: compatibility
         ? Math.min(100, Math.max(0, parseInt(compatibility)))
         : Math.floor(Math.random() * 35) + 60,
+      photo: photo || '',
     });
     res.status(201).json(p);
   }
@@ -470,7 +472,7 @@ app.post('/api/admin/profiles', adminAuth,
 app.put('/api/admin/profiles/:id', adminAuth, async (req, res) => {
   const p = await Profile.findById(req.params.id);
   if (!p) return res.status(404).json({ error: 'Profil non trouvé' });
-  const { name, age, city, bio, tags, color, compatibility } = req.body;
+  const { name, age, city, bio, tags, color, compatibility, photo } = req.body;
   if (name  !== undefined) { p.name = sanitize(name, 50); p.initials = name.slice(0, 2).toUpperCase(); }
   if (age   !== undefined) p.age           = parseInt(age);
   if (city  !== undefined) p.city          = sanitize(city, 100);
@@ -478,6 +480,7 @@ app.put('/api/admin/profiles/:id', adminAuth, async (req, res) => {
   if (Array.isArray(tags)) p.tags          = tags.slice(0, 10).map(t => sanitize(t, 30));
   if (color !== undefined) p.color         = color;
   if (compatibility !== undefined) p.compatibility = Math.min(100, Math.max(0, parseInt(compatibility)));
+  if (photo !== undefined) p.photo         = photo;
   await p.save();
   res.json(p);
 });

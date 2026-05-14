@@ -162,9 +162,10 @@ function MatchModal({ match, onMessage, onContinue }) {
             Toi et <strong>{match.name}</strong> vous vous êtes plû 💜
           </p>
           <div className="flex justify-center">
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${match.color} flex items-center justify-center text-2xl font-bold text-white ring-4 ring-white/40 shadow-xl`}>
-              {match.initials}
-            </div>
+            {match.photo
+              ? <img src={match.photo} alt={match.name} className="w-20 h-20 rounded-full object-cover ring-4 ring-white/40 shadow-xl" />
+              : <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${match.color} flex items-center justify-center text-2xl font-bold text-white ring-4 ring-white/40 shadow-xl`}>{match.initials}</div>
+            }
           </div>
         </div>
         <div className="bg-white p-6 space-y-3">
@@ -230,14 +231,11 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
                 onTouchMove={handlers.touchMove}
                 onTouchEnd={handlers.touchEnd}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${profile.color}`} />
+                {profile.photo
+                  ? <img src={profile.photo} alt={profile.name} className="absolute inset-0 w-full h-full object-cover" />
+                  : <div className={`absolute inset-0 bg-gradient-to-br ${profile.color}`} />
+                }
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
-
-                <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: '38%' }}>
-                  <div className={`w-32 h-32 rounded-full bg-gradient-to-br ${profile.color} flex items-center justify-center text-4xl font-bold text-white shadow-2xl ring-4 ring-white/20`}>
-                    {profile.initials}
-                  </div>
-                </div>
 
                 <div className="absolute top-7 left-6" style={{ opacity: likeOp, transform: 'rotate(-15deg)' }}>
                   <span className="border-4 border-green-400 text-green-400 text-xl font-black px-3 py-1 rounded-xl">LIKE</span>
@@ -315,9 +313,10 @@ function MatchesScreen({ matches, onChat, loading }) {
           {matches.map(m => (
             <button key={m.id} onClick={() => onChat(m)}
               className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-              <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${m.profile?.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-lg font-bold text-white flex-shrink-0 ring-2 ring-[#FD297B]/15`}>
-                {m.profile?.initials}
-              </div>
+              {m.profile?.photo
+                ? <img src={m.profile.photo} alt={m.profile.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0 ring-2 ring-[#FD297B]/15" />
+                : <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${m.profile?.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-lg font-bold text-white flex-shrink-0 ring-2 ring-[#FD297B]/15`}>{m.profile?.initials}</div>
+              }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-gray-900 font-bold">{m.profile?.name}</span>
@@ -347,9 +346,10 @@ function MessagesScreen({ matches, convs, activeConv, setActiveConv, newMsg, set
           <button onClick={() => setActiveConv(null)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${profile?.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
-            {profile?.initials}
-          </div>
+          {profile?.photo
+            ? <img src={profile.photo} alt={profile.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            : <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${profile?.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{profile?.initials}</div>
+          }
           <div>
             <p className="text-gray-900 font-bold leading-tight">{profile?.name}</p>
             <p className="text-green-500 text-xs font-medium">En ligne</p>
@@ -407,9 +407,10 @@ function MessagesScreen({ matches, convs, activeConv, setActiveConv, newMsg, set
             return (
               <button key={m.id} onClick={() => { setActiveConv(m.profileId); onOpen(m.profileId); }}
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${m.profile?.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-lg font-bold text-white flex-shrink-0`}>
-                  {m.profile?.initials}
-                </div>
+                {m.profile?.photo
+                  ? <img src={m.profile.photo} alt={m.profile.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+                  : <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${m.profile?.color || 'from-pink-400 to-purple-500'} flex items-center justify-center text-lg font-bold text-white flex-shrink-0`}>{m.profile?.initials}</div>
+                }
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline gap-2">
                     <span className="text-gray-900 font-bold truncate">{m.profile?.name}</span>
