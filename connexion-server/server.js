@@ -118,7 +118,6 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/auth', authLimiter);
 app.use('/api', apiLimiter);
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
