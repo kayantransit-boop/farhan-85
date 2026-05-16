@@ -1071,7 +1071,14 @@ export default function App() {
         {showMatch && (
           <MatchModal
             match={showMatch}
-            onMessage={() => { setShowMatch(null); setActiveConv(showMatch.id); setActiveTab('messages'); }}
+            onMessage={() => {
+              const type = showMatch.isUser ? 'user' : 'profile';
+              setShowMatch(null);
+              setActiveConv(showMatch.id);
+              setActiveConvType(type);
+              setActiveTab('messages');
+              loadConv(showMatch.id, type);
+            }}
             onContinue={() => setShowMatch(null)}
           />
         )}
