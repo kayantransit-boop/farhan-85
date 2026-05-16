@@ -301,6 +301,16 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
                 }
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
 
+                {/* Pastille statut en ligne — coin supérieur droit */}
+                {profile.isUser && (
+                  <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                    {profile.online
+                      ? <><span className="relative flex w-2.5 h-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full w-2.5 h-2.5 bg-green-400" /></span><span className="text-white text-[10px] font-bold tracking-wide">En ligne</span></>
+                      : <><span className="w-2.5 h-2.5 rounded-full bg-gray-400" /><span className="text-white/70 text-[10px] font-bold tracking-wide">Hors ligne</span></>
+                    }
+                  </div>
+                )}
+
                 <div className="absolute top-7 left-6" style={{ opacity: likeOp, transform: 'rotate(-15deg)' }}>
                   <span className="border-4 border-green-400 text-green-400 text-xl font-black px-3 py-1 rounded-xl">LIKE</span>
                 </div>
@@ -320,13 +330,13 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-white text-2xl font-bold leading-tight">{profile.name}, {profile.age}</h2>
-                    {profile.isUser && (
-                      <span className="px-2 py-0.5 rounded-full bg-green-400 text-white text-xs font-black tracking-wide">● LIVE</span>
+                    {profile.isUser && profile.online && (
+                      <span className="px-2 py-0.5 rounded-full bg-green-400/90 text-white text-xs font-black tracking-wide">● En ligne</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1 text-white/75 text-sm mt-0.5">
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" /><span>{profile.city}</span>
-                    {profile.isUser && <span className="text-green-300 text-xs ml-1">· utilisateur réel</span>}
+                    {profile.isUser && <span className="text-white/50 text-xs ml-1">· utilisateur réel</span>}
                   </div>
                   <p className="text-white/75 text-sm mt-1.5 line-clamp-2 leading-relaxed">{profile.bio}</p>
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
