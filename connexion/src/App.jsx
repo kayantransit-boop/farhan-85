@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Heart, X, Star, MessageCircle, User, Shield,
-  ChevronLeft, Send, MapPin, Edit3, Check, Eye, EyeOff, LogOut
+  ChevronLeft, Send, MapPin, Edit3, Check, Eye, EyeOff, LogOut, Mail, Camera
 } from 'lucide-react';
 import * as api from './api';
 import AdminPanel from './Admin';
@@ -76,14 +76,42 @@ function LoadingScreen() {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
+// Redimensionne et compresse une image côté client (max 320px, qualité 0.75)
+function resizeImage(file, maxSize = 320, quality = 0.75) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = url;
+  });
+}
+
 function AuthScreen({ onLogin }) {
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ email: '', password: '', name: '' });
+  const [photo, setPhoto] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const photoRef = useRef();
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await resizeImage(file);
+    setPhoto(base64);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,7 +120,7 @@ function AuthScreen({ onLogin }) {
     try {
       const result = mode === 'login'
         ? await api.login(form.email, form.password)
-        : await api.register(form.email, form.password, form.name);
+        : await api.register(form.email, form.password, form.name, photo);
       localStorage.setItem('token', result.token);
       onLogin(result.user);
     } catch (err) {
@@ -112,7 +140,7 @@ function AuthScreen({ onLogin }) {
         <div className="flex-1 px-8 pt-8 pb-10">
           <div className="flex border-b border-gray-200 mb-6">
             {['login', 'register'].map(m => (
-              <button key={m} onClick={() => setMode(m)}
+              <button key={m} onClick={() => { setMode(m); setPhoto(''); }}
                 className={`flex-1 pb-3 text-sm font-bold border-b-2 -mb-px transition-colors ${mode === m ? 'border-[#FD297B] text-[#FD297B]' : 'border-transparent text-gray-400'}`}>
                 {m === 'login' ? 'Se connecter' : "S'inscrire"}
               </button>
@@ -125,11 +153,32 @@ function AuthScreen({ onLogin }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
-              <div>
-                <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1.5">Prénom</label>
-                <input type="text" placeholder="Votre prénom" value={form.name} onChange={set('name')} required minLength={2} maxLength={50}
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-[#FD297B] focus:outline-none text-sm transition-colors" />
-              </div>
+              <>
+                {/* Photo de profil */}
+                <div className="flex flex-col items-center gap-2 py-2">
+                  <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+                  <button type="button" onClick={() => photoRef.current.click()}
+                    className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-dashed border-gray-200 hover:border-[#FD297B] transition-colors group">
+                    {photo
+                      ? <img src={photo} alt="photo" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-1">
+                          <Camera className="w-7 h-7 text-gray-300 group-hover:text-[#FD297B] transition-colors" />
+                          <span className="text-[10px] text-gray-300 group-hover:text-[#FD297B]">Photo</span>
+                        </div>
+                    }
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                  </button>
+                  <p className="text-[10px] text-gray-400">Appuyez pour ajouter une photo</p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1.5">Prénom</label>
+                  <input type="text" placeholder="Votre prénom" value={form.name} onChange={set('name')} required minLength={2} maxLength={50}
+                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-[#FD297B] focus:outline-none text-sm transition-colors" />
+                </div>
+              </>
             )}
             <div>
               <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1.5">Email</label>
@@ -269,9 +318,15 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
                     </div>
                     <span className="text-white text-xs font-bold">{profile.compatibility}%</span>
                   </div>
-                  <h2 className="text-white text-2xl font-bold leading-tight">{profile.name}, {profile.age}</h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-white text-2xl font-bold leading-tight">{profile.name}, {profile.age}</h2>
+                    {profile.isUser && (
+                      <span className="px-2 py-0.5 rounded-full bg-green-400 text-white text-xs font-black tracking-wide">● LIVE</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 text-white/75 text-sm mt-0.5">
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" /><span>{profile.city}</span>
+                    {profile.isUser && <span className="text-green-300 text-xs ml-1">· utilisateur réel</span>}
                   </div>
                   <p className="text-white/75 text-sm mt-1.5 line-clamp-2 leading-relaxed">{profile.bio}</p>
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
@@ -305,25 +360,95 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
   );
 }
 
-// ─── MATCHES ──────────────────────────────────────────────────────────────────
-function MatchCard({ name, photo, initials, color, city, age, online, badge, onClick }) {
+// ─── PROFILE MODAL ────────────────────────────────────────────────────────────
+function ProfileModal({ profile, onClose, onChat }) {
+  if (!profile) return null;
+  const { name, photo, initials, color, city, age, bio, tags, online } = profile;
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-      <Avatar photo={photo} initials={initials} color={color} size={14} online={online} />
-      <div className="flex-1 min-w-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="relative w-full max-w-sm bg-white rounded-t-3xl overflow-hidden animate-slide-up"
+        onClick={e => e.stopPropagation()}>
+        {/* Header photo / avatar */}
+        <div className={`relative h-56 bg-gradient-to-br ${color || 'from-[#0089CF] to-[#12AD2B]'} flex items-center justify-center`}>
+          {photo
+            ? <img src={photo} alt={initials} className="w-full h-full object-cover" />
+            : <span className="text-7xl font-black text-white/90">{initials}</span>
+          }
+          <button onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center">
+            <X className="w-4 h-4 text-white" />
+          </button>
+          {online && (
+            <span className="absolute bottom-3 left-4 text-xs font-bold text-white bg-green-500 px-2.5 py-1 rounded-full">● En ligne</span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="px-5 pt-4 pb-6">
+          <div className="flex items-start justify-between mb-1">
+            <div>
+              <h2 className="text-2xl font-black text-gray-900">{name}</h2>
+              <p className="text-gray-400 text-sm flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3.5 h-3.5" />{city} · {age} ans
+              </p>
+            </div>
+          </div>
+
+          {bio && <p className="text-gray-700 text-sm leading-relaxed mt-3">{bio}</p>}
+
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {tags.map(t => (
+                <span key={t} className="bg-gray-100 text-gray-600 text-xs font-medium px-3 py-1 rounded-full">{t}</span>
+              ))}
+            </div>
+          )}
+
+          <button onClick={() => { onClose(); onChat(); }}
+            className={`w-full mt-5 py-3 rounded-2xl ${G} text-white font-bold text-sm flex items-center justify-center gap-2`}>
+            <MessageCircle className="w-4 h-4" />
+            Envoyer un message
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MATCHES ──────────────────────────────────────────────────────────────────
+function MatchCard({ name, photo, initials, color, city, age, online, badge, onClick, onProfile }) {
+  return (
+    <div className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
+      <button onClick={onProfile || onClick} className="flex-shrink-0">
+        <Avatar photo={photo} initials={initials} color={color} size={14} online={online} />
+      </button>
+      <button onClick={onClick} className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-1.5">
           <span className="text-gray-900 font-bold">{name}</span>
           {online && <span className="text-[10px] text-green-500 font-semibold">● En ligne</span>}
-          {badge && !online && <span className="text-[10px] bg-[#0089CF] text-white px-1.5 py-0.5 rounded-full font-bold">UTILISATEUR</span>}
+          {badge && !online && <span className="text-[10px] bg-gray-400 text-white px-1.5 py-0.5 rounded-full font-bold">Hors ligne</span>}
         </div>
         <p className="text-gray-400 text-sm">{city} · {age} ans</p>
-      </div>
-      <MessageCircle className="w-5 h-5 text-[#FD297B] flex-shrink-0" />
-    </button>
+        {badge && !online && (
+          <div className="flex items-center gap-1.5 mt-1.5 bg-[#0089CF]/10 rounded-full px-2.5 py-1 self-start">
+            <Mail className="w-3 h-3 text-[#0089CF]" />
+            <span className="text-[10px] text-[#0089CF] font-bold">Écrire un message</span>
+          </div>
+        )}
+      </button>
+      <button onClick={onClick} className="flex-shrink-0">
+        {online
+          ? <MessageCircle className="w-5 h-5 text-green-500" fill="currentColor" />
+          : <Mail className="w-5 h-5 text-[#0089CF]" />
+        }
+      </button>
+    </div>
   );
 }
 
 function MatchesScreen({ matches, userMatches, onChat, loading }) {
+  const [viewingProfile, setViewingProfile] = useState(null);
   const total = matches.length + userMatches.length;
   return (
     <div className="flex flex-col h-full bg-white">
@@ -345,15 +470,23 @@ function MatchesScreen({ matches, userMatches, onChat, loading }) {
         <div className="flex-1 overflow-y-auto divide-y divide-gray-50 pb-20">
           {userMatches.map(m => (
             <MatchCard key={`u_${m.matchUserId}`} name={m.name} photo={m.photo} initials={m.initials}
-              color={m.color} city={m.city} age={m.age} online={m.online} badge onClick={() => onChat(m)} />
+              color={m.color} city={m.city} age={m.age} online={m.online} badge
+              onClick={() => onChat(m)}
+              onProfile={() => setViewingProfile({ ...m, chatData: m })} />
           ))}
           {matches.map(m => (
             <MatchCard key={`p_${m.id}`} name={m.profile?.name} photo={m.profile?.photo}
               initials={m.profile?.initials} color={m.profile?.color}
-              city={m.profile?.city} age={m.profile?.age} onClick={() => onChat(m)} />
+              city={m.profile?.city} age={m.profile?.age}
+              onClick={() => onChat(m)} />
           ))}
         </div>
       )}
+      <ProfileModal
+        profile={viewingProfile}
+        onClose={() => setViewingProfile(null)}
+        onChat={() => viewingProfile && onChat(viewingProfile.chatData)}
+      />
     </div>
   );
 }
@@ -373,20 +506,53 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
       initials = pm?.profile?.initials; color = pm?.profile?.color;
     }
 
+    const [chatProfileOpen, setChatProfileOpen] = useState(false);
+    const um = isUser ? userMatches.find(m => m.matchUserId === activeConv) : null;
+
     return (
       <div className="flex flex-col h-full bg-white">
         <div className="px-4 pt-12 pb-3 flex items-center gap-3 border-b border-gray-100 flex-shrink-0">
           <button onClick={() => setActiveConv(null)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <Avatar photo={photo} initials={initials} color={color} size={10} online={isUser && online} />
-          <div>
+          <button onClick={() => isUser && setChatProfileOpen(true)} className={isUser ? 'cursor-pointer' : 'cursor-default'}>
+            <Avatar photo={photo} initials={initials} color={color} size={10} online={isUser && online} />
+          </button>
+          <button onClick={() => isUser && setChatProfileOpen(true)} className={`flex-1 text-left ${isUser ? 'cursor-pointer' : 'cursor-default'}`}>
             <p className="text-gray-900 font-bold leading-tight">{name}</p>
-            <p className={`text-xs font-medium ${isUser && online ? 'text-green-500' : 'text-gray-400'}`}>
-              {isUser ? (online ? '● En ligne maintenant' : 'Utilisateur réel · messages en direct') : 'Profil'}
-            </p>
-          </div>
+            {isUser && online && (
+              <p className="text-xs font-medium text-green-500">● En ligne maintenant</p>
+            )}
+            {isUser && !online && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <Mail className="w-3 h-3 text-[#0089CF]" />
+                <span className="text-xs font-medium text-[#0089CF]">Hors ligne · il verra votre message</span>
+              </div>
+            )}
+            {!isUser && (
+              <p className="text-xs font-medium text-gray-400">Profil</p>
+            )}
+          </button>
         </div>
+        {isUser && chatProfileOpen && (
+          <ProfileModal
+            profile={um}
+            onClose={() => setChatProfileOpen(false)}
+            onChat={() => setChatProfileOpen(false)}
+          />
+        )}
+
+        {isUser && !online && (
+          <div className="bg-[#E8F4FB] border-b border-[#BEE0F5] px-4 py-3 flex items-center gap-3 flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-[#0089CF]/15 flex items-center justify-center flex-shrink-0">
+              <Mail className="w-4 h-4 text-[#0089CF]" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#0069A0]">{name?.split(' ')[0] || 'Cette personne'} est hors ligne</p>
+              <p className="text-[11px] text-[#4A9FC0] leading-snug mt-0.5">Écrivez votre message maintenant — il/elle le recevra dès sa reconnexion et pourra vous répondre.</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-gray-50">
           {loadingConv ? (
@@ -446,16 +612,20 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
                 <Avatar photo={m.photo} initials={m.initials} color={m.color} size={14} online={m.isUser && m.online} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-gray-900 font-bold truncate">{m.name}</span>
-                      {m.isUser && m.online && <span className="text-[9px] text-green-500 font-bold flex-shrink-0">● En ligne</span>}
-                      {m.isUser && !m.online && <span className="text-[9px] bg-[#0089CF] text-white px-1 py-0.5 rounded-full font-bold flex-shrink-0">LIVE</span>}
-                    </div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-gray-900 font-bold truncate">{m.name}</span>
+                    {m.isUser && m.online && <span className="text-[9px] text-green-500 font-bold flex-shrink-0">● En ligne</span>}
+                    {m.isUser && !m.online && <span className="text-[9px] text-gray-400 font-bold flex-shrink-0">Hors ligne</span>}
                   </div>
                   <p className="text-gray-400 text-sm truncate mt-0.5">
                     {last ? (last.from === 'me' ? 'Vous : ' : '') + last.text : 'Nouveau match ! 🎉'}
                   </p>
+                  {m.isUser && !m.online && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Mail className="w-3 h-3 text-[#0089CF]" />
+                      <span className="text-[10px] text-[#0089CF] font-medium">Écrire · il répondra à sa reconnexion</span>
+                    </div>
+                  )}
                 </div>
               </button>
             );
@@ -472,10 +642,18 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin }) {
   const [draft, setDraft] = useState(user);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const photoRef = useRef();
 
   useEffect(() => { setDraft(user); }, [user]);
 
   const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.value }));
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await resizeImage(file);
+    setDraft(d => ({ ...d, photo: base64 }));
+  };
 
   const save = async () => {
     setSaving(true); setError('');
@@ -494,8 +672,23 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin }) {
       <div className="relative flex-shrink-0">
         <div className={`h-40 ${G}`} />
         <div className="absolute inset-x-0 bottom-0 translate-y-1/2 flex justify-center">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FD297B] to-[#FF655B] flex items-center justify-center text-3xl font-bold text-white ring-4 ring-white shadow-xl">
-            {user.name?.charAt(0).toUpperCase()}
+          <div className="relative">
+            {draft.photo || user.photo
+              ? <img src={editing ? (draft.photo || user.photo) : user.photo} alt={user.name}
+                  className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-xl" />
+              : <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FD297B] to-[#FF655B] flex items-center justify-center text-3xl font-bold text-white ring-4 ring-white shadow-xl">
+                  {user.name?.charAt(0).toUpperCase()}
+                </div>
+            }
+            {editing && (
+              <>
+                <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+                <button type="button" onClick={() => photoRef.current.click()}
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white">
+                  <Camera className="w-4 h-4 text-white" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -593,12 +786,32 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin }) {
   );
 }
 
+// ─── TOAST NOTIFICATION ───────────────────────────────────────────────────────
+function Toast({ toasts }) {
+  return (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[90%] max-w-[380px] pointer-events-none">
+      {toasts.map(t => (
+        <div key={t.id} className="flex items-center gap-3 bg-gray-900/95 text-white px-4 py-3 rounded-2xl shadow-2xl animate-slide-down">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0089CF] to-[#12AD2B] flex items-center justify-center text-sm font-bold flex-shrink-0">
+            {t.initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-green-400">{t.sender}</p>
+            <p className="text-sm truncate">{t.text}</p>
+          </div>
+          <MessageCircle className="w-4 h-4 text-white/40 flex-shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
-function BottomNav({ active, setActive, matchCount }) {
+function BottomNav({ active, setActive, matchCount, unreadCount }) {
   const tabs = [
     { id: 'discover',  Icon: Heart,          label: 'Découvrir' },
     { id: 'matches',   Icon: Heart,          label: 'Matchs',   badge: matchCount },
-    { id: 'messages',  Icon: MessageCircle,  label: 'Messages' },
+    { id: 'messages',  Icon: MessageCircle,  label: 'Messages', badge: unreadCount },
     { id: 'profile',   Icon: User,           label: 'Profil' },
   ];
   return (
@@ -648,8 +861,24 @@ export default function App() {
   const [activeConvType, setActiveConvType] = useState('profile');
   const [newMsg, setNewMsg]               = useState('');
   const [loadingConv, setLoadingConv]     = useState(false);
-  const endRef = useRef(null);
-  const pollRef = useRef(null);
+  const [unreadCount, setUnreadCount]     = useState(0);
+  const [toasts, setToasts]               = useState([]);
+  const endRef   = useRef(null);
+  const pollRef  = useRef(null);
+  const seenRef  = useRef({});   // { convKey: lastMessageCount }
+
+  const pushToast = (sender, initials, text) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, sender, initials, text }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  };
+
+  const notify = (sender, initials, text) => {
+    pushToast(sender, initials, text);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(`💬 ${sender}`, { body: text, icon: '/icon-192.png', badge: '/icon-192.png' });
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -680,11 +909,11 @@ export default function App() {
     return () => clearTimeout(t);
   }, [swipeAnim]);
 
-  // Polling messages pour les convs user-to-user
+  // Polling messages pour les convs user-to-user (silencieux = sans spinner)
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (activeConv && activeConvType === 'user') {
-      pollRef.current = setInterval(() => loadConv(activeConv, 'user'), 3000);
+      pollRef.current = setInterval(() => loadConv(activeConv, 'user', true), 3000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [activeConv, activeConvType]);
@@ -695,6 +924,13 @@ export default function App() {
     api.heartbeat().catch(() => {});
     const hb = setInterval(() => api.heartbeat().catch(() => {}), 30000);
     return () => clearInterval(hb);
+  }, [appState]);
+
+  // Demander permission notifications au démarrage
+  useEffect(() => {
+    if (appState === 'main' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, [appState]);
 
   const loadProfiles = async () => {
@@ -720,33 +956,41 @@ export default function App() {
       ]);
       setMatches(profileMatches);
       setUserMatches(uMatches);
-      const updates = {};
-      for (const m of profileMatches) {
-        const msgs = await api.getMessages(m.profileId);
-        updates[`p_${m.profileId}`] = msgs.map(msg => ({ ...msg, from: msg.from === user?.id ? 'me' : 'them' }));
-      }
-      for (const m of uMatches) {
-        const msgs = await api.getUserMessages(m.matchUserId);
-        updates[`u_${m.matchUserId}`] = msgs.map(msg => ({ ...msg, from: msg.from === user?.id ? 'me' : 'them' }));
-      }
-      setConvs(updates);
     } catch (e) { console.error(e); }
     finally { setLoadingM(false); }
   };
 
-  const loadConv = async (convId, type = 'profile') => {
-    setLoadingConv(true);
+  const myId = user?._id || user?.id;
+
+  const loadConv = async (convId, type = 'profile', silent = false) => {
+    if (!silent) setLoadingConv(true);
     try {
       const key = `${type === 'user' ? 'u' : 'p'}_${convId}`;
       const msgs = type === 'user'
         ? await api.getUserMessages(convId)
         : await api.getMessages(convId);
-      setConvs(prev => ({
-        ...prev,
-        [key]: msgs.map(m => ({ ...m, from: m.from === user?.id ? 'me' : 'them' })),
-      }));
+      const mapped = msgs.map(m => ({ ...m, from: m.from === myId ? 'me' : 'them' }));
+
+      // Détecter les nouveaux messages de l'autre personne
+      if (silent) {
+        const prevCount = seenRef.current[key] ?? mapped.length;
+        const newOnes = mapped.slice(prevCount).filter(m => m.from === 'them');
+        if (newOnes.length > 0) {
+          const match = userMatches.find(m => m.matchUserId === convId);
+          const sender = match?.name || 'Nouveau message';
+          const initials = match?.initials || '??';
+          newOnes.forEach(m => notify(sender, initials, m.text));
+          // Badge non-lu si l'onglet Messages n'est pas actif
+          setUnreadCount(prev => prev + newOnes.length);
+        }
+        seenRef.current[key] = mapped.length;
+      } else {
+        seenRef.current[key] = mapped.length;
+      }
+
+      setConvs(prev => ({ ...prev, [key]: mapped }));
     } catch (e) { console.error(e); }
-    finally { setLoadingConv(false); }
+    finally { if (!silent) setLoadingConv(false); }
   };
 
   const handleAction = async (action) => {
@@ -823,6 +1067,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="w-full max-w-[430px] h-screen flex flex-col bg-white relative overflow-hidden shadow-2xl">
+        <Toast toasts={toasts} />
         {showMatch && (
           <MatchModal
             match={showMatch}
@@ -871,8 +1116,13 @@ export default function App() {
 
         <BottomNav
           active={activeTab}
-          setActive={tab => { setActiveTab(tab); if (tab !== 'messages') setActiveConv(null); }}
+          setActive={tab => {
+            setActiveTab(tab);
+            if (tab !== 'messages') setActiveConv(null);
+            if (tab === 'messages') setUnreadCount(0);
+          }}
           matchCount={matches.length}
+          unreadCount={unreadCount}
         />
       </div>
     </div>
