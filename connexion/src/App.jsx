@@ -771,7 +771,6 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
   };
   const removePhoto = (idx) => setDraft(d => ({ ...d, photos: (d.photos || []).filter((_, i) => i !== idx) }));
   const [error, setError] = useState('');
-  const photoRef = useRef();
 
   useEffect(() => { setDraft(user); }, [user]);
 
