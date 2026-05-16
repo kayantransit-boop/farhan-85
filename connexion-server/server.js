@@ -34,7 +34,9 @@ const userSchema = new mongoose.Schema({
   isAdmin: { type: Boolean, default: false },
   isBanned: { type: Boolean, default: false },
   photo: { type: String, default: '' },
+  photos: { type: [String], default: [] },
   lastSeen: { type: Date, default: null },
+  emailVerified: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const profileSchema = new mongoose.Schema({
@@ -71,6 +73,7 @@ const messageSchema = new mongoose.Schema({
   convId: { type: String, required: true, index: true },
   from: String,
   text: String,
+  readBy: { type: [String], default: [] },
   date: { type: Date, default: Date.now },
 });
 
@@ -89,13 +92,39 @@ const userMatchSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
-const User      = mongoose.model('User',      userSchema);
-const Profile   = mongoose.model('Profile',   profileSchema);
-const Swipe     = mongoose.model('Swipe',     swipeSchema);
-const Match     = mongoose.model('Match',     matchSchema);
-const Message   = mongoose.model('Message',   messageSchema);
-const UserSwipe = mongoose.model('UserSwipe', userSwipeSchema);
-const UserMatch = mongoose.model('UserMatch', userMatchSchema);
+const reportSchema = new mongoose.Schema({
+  _id: String,
+  reporterId: { type: String, required: true },
+  reportedId: { type: String, required: true },
+  reason: { type: String, default: '' },
+  date: { type: Date, default: Date.now },
+});
+
+const blockSchema = new mongoose.Schema({
+  blockerId: { type: String, required: true },
+  blockedId: { type: String, required: true },
+  date: { type: Date, default: Date.now },
+});
+blockSchema.index({ blockerId: 1, blockedId: 1 }, { unique: true });
+
+const passwordResetSchema = new mongoose.Schema({
+  _id: String,
+  userId: { type: String, required: true },
+  token: { type: String, required: true },
+  expires: { type: Date, required: true },
+  used: { type: Boolean, default: false },
+});
+
+const User          = mongoose.model('User',          userSchema);
+const Profile       = mongoose.model('Profile',       profileSchema);
+const Swipe         = mongoose.model('Swipe',         swipeSchema);
+const Match         = mongoose.model('Match',         matchSchema);
+const Message       = mongoose.model('Message',       messageSchema);
+const UserSwipe     = mongoose.model('UserSwipe',     userSwipeSchema);
+const UserMatch     = mongoose.model('UserMatch',     userMatchSchema);
+const Report        = mongoose.model('Report',        reportSchema);
+const Block         = mongoose.model('Block',         blockSchema);
+const PasswordReset = mongoose.model('PasswordReset', passwordResetSchema);
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────────────────────
 
@@ -226,11 +255,12 @@ app.post('/api/auth/register',
       });
     }
 
-    const { email, password, name } = req.body;
+    const { email, password, name, photo } = req.body;
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
 
     const userId = uuidv4();
+    const safePhoto = (photo && photo.startsWith('data:image/')) ? photo : '';
     const user = await User.create({
       _id: userId,
       email,
@@ -240,6 +270,7 @@ app.post('/api/auth/register',
       city: 'Djibouti',
       bio: '',
       tags: [],
+      photo: safePhoto,
     });
 
     await Profile.create({
@@ -252,11 +283,12 @@ app.post('/api/auth/register',
       initials: user.name.slice(0, 2).toUpperCase(),
       color: 'from-violet-400 to-fuchsia-500',
       compatibility: Math.floor(Math.random() * 30) + 65,
+      photo: safePhoto,
     });
 
     const token = jwt.sign({ userId, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     const { password: _, ...safeUser } = user.toObject();
-    res.status(201).json({ token, user: safeUser });
+    res.status(201).json({ token, user: { ...safeUser, id: userId } });
   }
 );
 
@@ -278,7 +310,39 @@ app.post('/api/auth/login',
 
     const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     const { password: _, ...safeUser } = user.toObject();
-    res.json({ token, user: safeUser });
+    res.json({ token, user: { ...safeUser, id: user._id } });
+  }
+);
+
+app.post('/api/auth/forgot-password',
+  body('email').isEmail().normalizeEmail(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Email invalide' });
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return res.json({ success: true }); // Ne pas révéler si l'email existe
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
+    await PasswordReset.deleteMany({ userId: user._id });
+    await PasswordReset.create({ _id: uuidv4(), userId: user._id, token, expires });
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
+    console.log(`🔑 Reset password lien pour ${user.email}: ${resetUrl}`);
+    res.json({ success: true, resetUrl: process.env.NODE_ENV !== 'production' ? resetUrl : undefined });
+  }
+);
+
+app.post('/api/auth/reset-password',
+  body('token').notEmpty(),
+  body('password').isLength({ min: 8 }).matches(/[A-Z]/).matches(/[0-9]/),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Token ou mot de passe invalide' });
+    const { token, password } = req.body;
+    const reset = await PasswordReset.findOne({ token, used: false, expires: { $gt: new Date() } });
+    if (!reset) return res.status(400).json({ error: 'Lien expiré ou invalide' });
+    await User.updateOne({ _id: reset.userId }, { password: bcrypt.hashSync(password, 12) });
+    await PasswordReset.updateOne({ _id: reset._id }, { used: true });
+    res.json({ success: true });
   }
 );
 
@@ -286,7 +350,7 @@ app.get('/api/auth/me', auth, async (req, res) => {
   const user = await User.findById(req.user.userId);
   if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
   const { password, ...safeUser } = user.toObject();
-  res.json(safeUser);
+  res.json({ ...safeUser, id: user._id });
 });
 
 // ─── PROFILES ─────────────────────────────────────────────────────────────────
@@ -295,7 +359,10 @@ app.get('/api/profiles', auth, async (req, res) => {
   const swiped = await Swipe.find({ userId: req.user.userId }).select('profileId');
   const swipedIds = swiped.map(s => s.profileId);
   swipedIds.push(req.user.userId);
-  const profiles = await Profile.find({ _id: { $nin: swipedIds } });
+  // Exclure les profils automatiquement créés pour les vrais utilisateurs
+  const userIds = await User.find({}).distinct('_id');
+  const excluded = [...new Set([...swipedIds, ...userIds])];
+  const profiles = await Profile.find({ _id: { $nin: excluded } });
   res.json(profiles);
 });
 
@@ -393,20 +460,72 @@ app.get('/api/users/status/:userId', auth, async (req, res) => {
 // ─── USER-TO-USER DISCOVERY ───────────────────────────────────────────────────
 
 app.get('/api/users/discover', auth, async (req, res) => {
-  const swiped = await UserSwipe.find({ fromUserId: req.user.userId }).distinct('toUserId');
-  const matched1 = await UserMatch.find({ user1Id: req.user.userId }).distinct('user2Id');
-  const matched2 = await UserMatch.find({ user2Id: req.user.userId }).distinct('user1Id');
-  const excluded = [...new Set([...swiped, ...matched1, ...matched2, req.user.userId])];
-  const users = await User.find({ _id: { $nin: excluded }, isBanned: false, isAdmin: false })
-    .select('_id name age city bio tags photo lastSeen').limit(20);
+  const { minAge, maxAge, city } = req.query;
+  const [swiped, matched1, matched2, blockedByMe, blockedMe] = await Promise.all([
+    UserSwipe.find({ fromUserId: req.user.userId }).distinct('toUserId'),
+    UserMatch.find({ user1Id: req.user.userId }).distinct('user2Id'),
+    UserMatch.find({ user2Id: req.user.userId }).distinct('user1Id'),
+    Block.find({ blockerId: req.user.userId }).distinct('blockedId'),
+    Block.find({ blockedId: req.user.userId }).distinct('blockerId'),
+  ]);
+  const excluded = [...new Set([...swiped, ...matched1, ...matched2, ...blockedByMe, ...blockedMe, req.user.userId])];
+  const filter = { _id: { $nin: excluded }, isBanned: false, isAdmin: false };
+  if (minAge || maxAge) {
+    filter.age = {};
+    if (minAge) filter.age.$gte = parseInt(minAge);
+    if (maxAge) filter.age.$lte = parseInt(maxAge);
+  }
+  if (city && city.trim()) filter.city = new RegExp(city.trim(), 'i');
+  const users = await User.find(filter).select('_id name age city bio tags photo photos lastSeen').limit(20);
   res.json(users.map(u => ({
     id: u._id, name: u.name, age: u.age, city: u.city,
-    bio: u.bio, tags: u.tags, photo: u.photo,
+    bio: u.bio, tags: u.tags, photo: u.photo, photos: u.photos || [],
     initials: u.name.slice(0, 2).toUpperCase(),
     color: 'from-[#0089CF] to-[#12AD2B]',
     compatibility: Math.floor(Math.random() * 35) + 60,
     isUser: true, online: isOnline(u.lastSeen),
   })));
+});
+
+app.get('/api/users/swipe-remaining', auth, async (req, res) => {
+  const DAILY_LIMIT = 50;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const used = await UserSwipe.countDocuments({ fromUserId: req.user.userId, date: { $gte: today } });
+  res.json({ remaining: Math.max(0, DAILY_LIMIT - used), limit: DAILY_LIMIT, used });
+});
+
+app.post('/api/users/report/:reportedId', auth,
+  body('reason').optional().trim().isLength({ max: 200 }),
+  async (req, res) => {
+    const { reportedId } = req.params;
+    if (reportedId === req.user.userId) return res.status(400).json({ error: 'Impossible de vous signaler vous-même' });
+    await Report.create({ _id: uuidv4(), reporterId: req.user.userId, reportedId, reason: sanitize(req.body.reason || '', 200) });
+    res.json({ success: true });
+  }
+);
+
+app.post('/api/users/block/:blockedId', auth, async (req, res) => {
+  const { blockedId } = req.params;
+  if (blockedId === req.user.userId) return res.status(400).json({ error: 'Impossible de vous bloquer vous-même' });
+  try {
+    await Block.create({ blockerId: req.user.userId, blockedId });
+  } catch (e) {
+    if (e.code === 11000) return res.json({ success: true });
+    throw e;
+  }
+  res.json({ success: true });
+});
+
+app.delete('/api/users/block/:blockedId', auth, async (req, res) => {
+  await Block.deleteOne({ blockerId: req.user.userId, blockedId: req.params.blockedId });
+  res.json({ success: true });
+});
+
+app.get('/api/users/blocked', auth, async (req, res) => {
+  const blocks = await Block.find({ blockerId: req.user.userId });
+  const ids = blocks.map(b => b.blockedId);
+  const users = await User.find({ _id: { $in: ids } }).select('_id name photo');
+  res.json(users.map(u => ({ id: u._id, name: u.name, photo: u.photo })));
 });
 
 app.post('/api/users/swipe/:targetId', auth,
@@ -417,6 +536,10 @@ app.post('/api/users/swipe/:targetId', auth,
     const { targetId } = req.params;
     const { action } = req.body;
     if (targetId === req.user.userId) return res.status(400).json({ error: 'Impossible de se swiper soi-même' });
+    const DAILY_LIMIT = 50;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dailyCount = await UserSwipe.countDocuments({ fromUserId: req.user.userId, date: { $gte: today } });
+    if (dailyCount >= DAILY_LIMIT) return res.status(429).json({ error: `Limite de ${DAILY_LIMIT} swipes atteinte pour aujourd'hui`, remaining: 0 });
     try {
       await UserSwipe.create({ fromUserId: req.user.userId, toUserId: targetId, action });
     } catch (e) {
@@ -456,7 +579,7 @@ app.get('/api/users/matches', auth, async (req, res) => {
     if (!u) return null;
     return {
       id: m._id, matchUserId: otherId,
-      name: u.name, age: u.age, city: u.city, photo: u.photo,
+      name: u.name, age: u.age, city: u.city, bio: u.bio || '', tags: u.tags || [], photo: u.photo,
       initials: u.name.slice(0, 2).toUpperCase(),
       color: 'from-[#0089CF] to-[#12AD2B]',
       online: isOnline(u.lastSeen),
@@ -469,6 +592,15 @@ app.get('/api/users/messages/:matchUserId', auth, async (req, res) => {
   const convId = [req.user.userId, req.params.matchUserId].sort().join('__');
   const msgs = await Message.find({ convId }).sort({ date: 1 });
   res.json(msgs);
+});
+
+app.post('/api/users/messages/:matchUserId/read', auth, async (req, res) => {
+  const convId = [req.user.userId, req.params.matchUserId].sort().join('__');
+  await Message.updateMany(
+    { convId, from: { $ne: req.user.userId }, readBy: { $ne: req.user.userId } },
+    { $addToSet: { readBy: req.user.userId } }
+  );
+  res.json({ ok: true });
 });
 
 app.post('/api/users/messages/:matchUserId', auth,
@@ -501,12 +633,13 @@ app.put('/api/profile', auth,
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
 
-    const { name, age, city, bio, tags } = req.body;
+    const { name, age, city, bio, tags, photos } = req.body;
     if (name !== undefined) user.name = sanitize(name, 50);
     if (age  !== undefined) user.age  = Math.min(100, Math.max(18, parseInt(age)));
     if (city !== undefined) user.city = sanitize(city, 100);
     if (bio  !== undefined) user.bio  = sanitize(bio, 500);
     if (Array.isArray(tags)) user.tags = tags.slice(0, 10).map(t => sanitize(String(t), 30));
+    if (Array.isArray(photos)) user.photos = photos.slice(0, 5).filter(p => typeof p === 'string' && p.startsWith('data:image/'));
     await user.save();
 
     await Profile.findByIdAndUpdate(user._id, {
@@ -565,7 +698,8 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
 });
 
 app.get('/api/admin/profiles', adminAuth, async (req, res) => {
-  res.json(await Profile.find());
+  const profiles = await Profile.find().lean();
+  res.json(profiles.map(p => ({ ...p, id: String(p._id) })));
 });
 
 app.post('/api/admin/profiles', adminAuth,
@@ -602,7 +736,7 @@ app.post('/api/admin/profiles', adminAuth,
 );
 
 app.put('/api/admin/profiles/:id', adminAuth, async (req, res) => {
-  const p = await Profile.findById(req.params.id);
+  const p = await Profile.findOne({ _id: req.params.id });
   if (!p) return res.status(404).json({ error: 'Profil non trouvé' });
   const { name, age, city, bio, tags, color, compatibility, photo } = req.body;
   if (name  !== undefined) { p.name = sanitize(name, 50); p.initials = name.slice(0, 2).toUpperCase(); }
@@ -618,10 +752,32 @@ app.put('/api/admin/profiles/:id', adminAuth, async (req, res) => {
 });
 
 app.delete('/api/admin/profiles/:id', adminAuth, async (req, res) => {
-  const p = await Profile.findById(req.params.id);
-  if (!p) return res.status(404).json({ error: 'Profil non trouvé' });
-  await Profile.deleteOne({ _id: req.params.id });
+  const result = await Profile.deleteOne({ _id: req.params.id });
+  if (result.deletedCount === 0) return res.status(404).json({ error: 'Profil non trouvé' });
   res.json({ success: true });
+});
+
+// Crée un match entre deux utilisateurs (admin seulement)
+app.post('/api/admin/force-match', adminAuth, async (req, res) => {
+  const { user1Id, user2Id } = req.body;
+  if (!user1Id || !user2Id) return res.status(400).json({ error: 'user1Id et user2Id requis' });
+  const [u1, u2] = await Promise.all([User.findById(user1Id), User.findById(user2Id)]);
+  if (!u1 || !u2) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+  // Créer les swipes mutuels (ignorer si déjà existants)
+  await UserSwipe.updateOne({ fromUserId: user1Id, toUserId: user2Id }, { fromUserId: user1Id, toUserId: user2Id, action: 'like' }, { upsert: true });
+  await UserSwipe.updateOne({ fromUserId: user2Id, toUserId: user1Id }, { fromUserId: user2Id, toUserId: user1Id, action: 'like' }, { upsert: true });
+  // Créer le match si pas déjà existant
+  const existing = await UserMatch.findOne({ $or: [{ user1Id, user2Id }, { user1Id: user2Id, user2Id: user1Id }] });
+  if (!existing) {
+    const matchId = uuidv4();
+    await UserMatch.create({ _id: matchId, user1Id, user2Id });
+    const convId = [user1Id, user2Id].sort().join('__');
+    await Message.create({ _id: uuidv4(), convId, from: user2Id, text: 'Salut ! On est en match 🎉' });
+  }
+  // Générer des tokens pour les deux (pour le test)
+  const tokenA = jwt.sign({ userId: u1._id, email: u1.email }, process.env.JWT_SECRET || 'secret-key-djibouti-2025', { expiresIn: '2h' });
+  const tokenB = jwt.sign({ userId: u2._id, email: u2.email }, process.env.JWT_SECRET || 'secret-key-djibouti-2025', { expiresIn: '2h' });
+  res.json({ success: true, matchCreated: !existing, tokenA, tokenB, nameA: u1.name, nameB: u2.name });
 });
 
 app.get('/api/admin/matches', adminAuth, async (req, res) => {
@@ -647,6 +803,14 @@ app.get('/api/admin/messages', adminAuth, async (req, res) => {
     { $group: { _id: '$convId', count: { $sum: 1 }, last: { $last: '$text' } } },
   ]);
   res.json(msgs.map(m => ({ convId: m._id, count: m.count, last: m.last })));
+});
+
+app.get('/api/admin/reports', adminAuth, async (req, res) => {
+  const reports = await Report.find().sort({ date: -1 }).limit(100);
+  const ids = [...new Set([...reports.map(r => r.reporterId), ...reports.map(r => r.reportedId)])];
+  const users = await User.find({ _id: { $in: ids } }).select('name');
+  const userMap = Object.fromEntries(users.map(u => [u._id, u.name]));
+  res.json(reports.map(r => ({ ...r.toObject(), reporterName: userMap[r.reporterId] || '?', reportedName: userMap[r.reportedId] || '?' })));
 });
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────

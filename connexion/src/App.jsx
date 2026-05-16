@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Heart, X, Star, MessageCircle, User, Shield,
-  ChevronLeft, Send, MapPin, Edit3, Check, Eye, EyeOff, LogOut, Mail, Camera
+  ChevronLeft, Send, MapPin, Edit3, Check, Eye, EyeOff, LogOut, Mail, Camera,
+  SlidersHorizontal, Moon, Sun, Flag, Ban, CheckCheck, AlertCircle, Flame
 } from 'lucide-react';
 import * as api from './api';
 import AdminPanel from './Admin';
@@ -101,6 +102,7 @@ function AuthScreen({ onLogin }) {
   const [photo, setPhoto] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const photoRef = useRef();
 
@@ -115,9 +117,14 @@ function AuthScreen({ onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); setSuccess('');
     setLoading(true);
     try {
+      if (mode === 'forgot') {
+        await api.forgotPassword(form.email);
+        setSuccess('Si cet email existe, un lien de réinitialisation vous a été envoyé.');
+        return;
+      }
       const result = mode === 'login'
         ? await api.login(form.email, form.password)
         : await api.register(form.email, form.password, form.name, photo);
@@ -138,18 +145,27 @@ function AuthScreen({ onLogin }) {
         </div>
 
         <div className="flex-1 px-8 pt-8 pb-10">
-          <div className="flex border-b border-gray-200 mb-6">
-            {['login', 'register'].map(m => (
-              <button key={m} onClick={() => { setMode(m); setPhoto(''); }}
-                className={`flex-1 pb-3 text-sm font-bold border-b-2 -mb-px transition-colors ${mode === m ? 'border-[#FD297B] text-[#FD297B]' : 'border-transparent text-gray-400'}`}>
-                {m === 'login' ? 'Se connecter' : "S'inscrire"}
+          {mode === 'forgot' ? (
+            <div className="mb-4">
+              <button onClick={() => { setMode('login'); setError(''); setSuccess(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-4">
+                <ChevronLeft className="w-4 h-4" /> Retour
               </button>
-            ))}
-          </div>
-
-          {error && (
-            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 text-red-500 text-sm">{error}</div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Mot de passe oublié</h3>
+              <p className="text-gray-400 text-sm mb-4">Entrez votre email pour recevoir un lien de réinitialisation.</p>
+            </div>
+          ) : (
+            <div className="flex border-b border-gray-200 mb-6">
+              {['login', 'register'].map(m => (
+                <button key={m} onClick={() => { setMode(m); setPhoto(''); setError(''); setSuccess(''); }}
+                  className={`flex-1 pb-3 text-sm font-bold border-b-2 -mb-px transition-colors ${mode === m ? 'border-[#FD297B] text-[#FD297B]' : 'border-transparent text-gray-400'}`}>
+                  {m === 'login' ? 'Se connecter' : "S'inscrire"}
+                </button>
+              ))}
+            </div>
           )}
+
+          {error && <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 text-red-500 text-sm">{error}</div>}
+          {success && <div className="mb-5 p-3 rounded-xl bg-green-50 border border-green-100 text-green-600 text-sm">{success}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
@@ -200,14 +216,60 @@ function AuthScreen({ onLogin }) {
 
             <button type="submit" disabled={loading}
               className={`w-full py-4 rounded-xl ${G} text-white font-bold text-sm shadow-lg shadow-pink-200 hover:scale-[1.01] active:scale-[0.99] transition-transform disabled:opacity-60 mt-2`}>
-              {loading ? 'Chargement...' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+              {loading ? 'Chargement...' : mode === 'forgot' ? 'Envoyer le lien' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
             </button>
           </form>
 
-          <p className="text-gray-300 text-xs text-center mt-8">
+          {mode === 'login' && (
+            <button onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }} className="block text-center text-[#0089CF] text-xs font-medium mt-4 hover:underline">
+              Mot de passe oublié ?
+            </button>
+          )}
+
+          <p className="text-gray-300 text-xs text-center mt-6">
             En continuant, vous acceptez nos{' '}
             <span className="text-[#FD297B]">Conditions d'utilisation</span>
           </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── FILTER MODAL ─────────────────────────────────────────────────────────────
+function FilterModal({ filters, onApply, onClose }) {
+  const [f, setF] = useState(filters);
+  const set = k => e => setF(prev => ({ ...prev, [k]: e.target.value }));
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="relative w-full max-w-[430px] bg-white rounded-t-3xl p-6 pb-10 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+        <h3 className="text-lg font-bold text-gray-900 mb-5">Filtres de recherche</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-2">Âge minimum</label>
+            <input type="number" min="18" max="80" value={f.minAge || ''} onChange={set('minAge')} placeholder="18"
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#0089CF] focus:outline-none text-sm" />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-2">Âge maximum</label>
+            <input type="number" min="18" max="100" value={f.maxAge || ''} onChange={set('maxAge')} placeholder="60"
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#0089CF] focus:outline-none text-sm" />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-2">Ville</label>
+            <input type="text" value={f.city || ''} onChange={set('city')} placeholder="Ex: Djibouti"
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#0089CF] focus:outline-none text-sm" />
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={() => { setF({}); onApply({}); }} className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:border-gray-300 transition-colors">
+            Réinitialiser
+          </button>
+          <button onClick={() => onApply(f)} className={`flex-1 py-3 rounded-xl ${G} text-white font-bold text-sm`}>
+            Appliquer
+          </button>
         </div>
       </div>
     </div>
@@ -246,8 +308,11 @@ function MatchModal({ match, onMessage, onContinue }) {
 }
 
 // ─── DISCOVER ─────────────────────────────────────────────────────────────────
-function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, handlers, loading }) {
+function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, handlers, loading, onFilter, swipeRemaining }) {
   const profile = profiles[0];
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const allPhotos = profile ? [profile.photo, ...(profile.photos || [])].filter(Boolean) : [];
+  useEffect(() => { setPhotoIdx(0); }, [profile?.id]);
   const rot = cardPos.x * 0.07;
   const likeOp  = Math.min(1, Math.max(0, cardPos.x / 80));
   const nopeOp  = Math.min(1, Math.max(0, -cardPos.x / 80));
@@ -266,8 +331,18 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
   return (
     <div className="flex flex-col h-full bg-white"
       onMouseMove={handlers.mouseMove} onMouseUp={handlers.mouseUp} onMouseLeave={handlers.mouseUp}>
-      <div className="px-5 pt-12 pb-3 flex items-center justify-center flex-shrink-0">
+      <div className="px-5 pt-12 pb-3 flex items-center justify-between flex-shrink-0">
         <LogoDark size="sm" />
+        <div className="flex items-center gap-2">
+          {swipeRemaining !== null && (
+            <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${swipeRemaining > 10 ? 'bg-green-50 text-green-600' : swipeRemaining > 0 ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-500'}`}>
+              <Flame className="w-3 h-3" />{swipeRemaining} restants
+            </div>
+          )}
+          <button onClick={onFilter} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+            <SlidersHorizontal className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 px-4 flex flex-col min-h-0">
@@ -295,10 +370,18 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
                 onTouchMove={handlers.touchMove}
                 onTouchEnd={handlers.touchEnd}
               >
-                {profile.photo
-                  ? <img src={profile.photo} alt={profile.name} className="absolute inset-0 w-full h-full object-cover" />
+                {allPhotos.length > 0
+                  ? <img src={allPhotos[photoIdx]} alt={profile.name} className="absolute inset-0 w-full h-full object-cover" />
                   : <div className={`absolute inset-0 bg-gradient-to-br ${profile.color}`} />
                 }
+                {allPhotos.length > 1 && (
+                  <div className="absolute top-3 left-0 right-0 flex justify-center gap-1 z-10">
+                    {allPhotos.map((_, i) => (
+                      <button key={i} onClick={e => { e.stopPropagation(); setPhotoIdx(i); }}
+                        className={`h-1 rounded-full transition-all ${i === photoIdx ? 'w-6 bg-white' : 'w-3 bg-white/50'}`} />
+                    ))}
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
 
                 {/* Pastille statut en ligne — coin supérieur droit */}
@@ -371,9 +454,11 @@ function DiscoverScreen({ profiles, onAction, swipeAnim, cardPos, isDragging, ha
 }
 
 // ─── PROFILE MODAL ────────────────────────────────────────────────────────────
-function ProfileModal({ profile, onClose, onChat }) {
+function ProfileModal({ profile, onClose, onChat, onReport, onBlock }) {
   if (!profile) return null;
   const { name, photo, initials, color, city, age, bio, tags, online } = profile;
+  const [reported, setReported] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50" />
@@ -420,6 +505,20 @@ function ProfileModal({ profile, onClose, onChat }) {
             <MessageCircle className="w-4 h-4" />
             Envoyer un message
           </button>
+          {profile.isUser && (
+            <div className="flex gap-2 mt-2">
+              <button onClick={async () => { await onReport?.(profile.id); setReported(true); }}
+                disabled={reported}
+                className="flex-1 py-2.5 rounded-2xl border border-orange-200 text-orange-500 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-orange-50 transition-colors disabled:opacity-40">
+                <Flag className="w-3.5 h-3.5" />{reported ? 'Signalé' : 'Signaler'}
+              </button>
+              <button onClick={async () => { await onBlock?.(profile.id); setBlocked(true); onClose(); }}
+                disabled={blocked}
+                className="flex-1 py-2.5 rounded-2xl border border-red-200 text-red-500 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-red-50 transition-colors disabled:opacity-40">
+                <Ban className="w-3.5 h-3.5" />{blocked ? 'Bloqué' : 'Bloquer'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -457,7 +556,7 @@ function MatchCard({ name, photo, initials, color, city, age, online, badge, onC
   );
 }
 
-function MatchesScreen({ matches, userMatches, onChat, loading }) {
+function MatchesScreen({ matches, userMatches, onChat, loading, onReport, onBlock }) {
   const [viewingProfile, setViewingProfile] = useState(null);
   const total = matches.length + userMatches.length;
   return (
@@ -496,6 +595,8 @@ function MatchesScreen({ matches, userMatches, onChat, loading }) {
         profile={viewingProfile}
         onClose={() => setViewingProfile(null)}
         onChat={() => viewingProfile && onChat(viewingProfile.chatData)}
+        onReport={onReport}
+        onBlock={id => { onBlock?.(id); setViewingProfile(null); }}
       />
     </div>
   );
@@ -569,17 +670,26 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
             <div className="flex justify-center pt-8">
               <div className="w-6 h-6 rounded-full border-4 border-gray-200 border-t-[#FD297B] animate-spin" />
             </div>
-          ) : messages.map((msg, i) => (
-            <div key={msg._id || i} className={`flex ${msg.from === 'me' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                msg.from === 'me'
-                  ? `${G} text-white rounded-br-sm`
-                  : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-              }`}>
-                {msg.text}
+          ) : messages.map((msg, i) => {
+            const isMe = msg.from === 'me';
+            const isRead = isMe && Array.isArray(msg.readBy) && msg.readBy.length > 0;
+            const isLast = i === messages.length - 1;
+            return (
+              <div key={msg._id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  isMe ? `${G} text-white rounded-br-sm` : 'bg-white text-gray-800 rounded-bl-sm shadow-sm dk-msg-them'
+                }`}>
+                  {msg.text}
+                </div>
+                {isMe && isLast && (
+                  <div className={`flex items-center gap-0.5 mt-0.5 text-[10px] ${isRead ? 'text-[#0089CF]' : 'text-gray-300'}`}>
+                    <CheckCheck className="w-3 h-3" />
+                    <span>{isRead ? 'Lu' : 'Envoyé'}</span>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={endRef} />
         </div>
 
@@ -647,10 +757,19 @@ function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvTyp
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
-function ProfileScreen({ user, setUser, onLogout, onAdmin }) {
+function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(user);
   const [saving, setSaving] = useState(false);
+  const photoRef = useRef();
+
+  const handleAddPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await resizeImage(file, 480, 0.8);
+    setDraft(d => ({ ...d, photos: [...(d.photos || []), base64].slice(0, 5) }));
+  };
+  const removePhoto = (idx) => setDraft(d => ({ ...d, photos: (d.photos || []).filter((_, i) => i !== idx) }));
   const [error, setError] = useState('');
   const photoRef = useRef();
 
@@ -781,6 +900,42 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin }) {
           </div>
         </div>
 
+        {/* Galerie photos */}
+        {editing && (
+          <div className="bg-gray-50 rounded-2xl p-4">
+            <h4 className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-3">Galerie photos ({(draft.photos || []).length}/5)</h4>
+            <div className="flex flex-wrap gap-2">
+              {(draft.photos || []).map((p, i) => (
+                <div key={i} className="relative w-16 h-16">
+                  <img src={p} alt="" className="w-full h-full rounded-xl object-cover" />
+                  <button onClick={() => removePhoto(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold">×</button>
+                </div>
+              ))}
+              {(draft.photos || []).length < 5 && (
+                <>
+                  <input ref={photoRef} type="file" accept="image/*" onChange={handleAddPhoto} className="hidden" />
+                  <button type="button" onClick={() => photoRef.current.click()}
+                    className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#0089CF] transition-colors">
+                    <Camera className="w-5 h-5 text-gray-400" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Dark mode toggle */}
+        <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {darkMode ? <Moon className="w-4 h-4 text-[#0089CF]" /> : <Sun className="w-4 h-4 text-yellow-500" />}
+            <span className="text-sm font-semibold text-gray-700">{darkMode ? 'Mode sombre' : 'Mode clair'}</span>
+          </div>
+          <button onClick={() => setDarkMode(d => !d)}
+            className={`w-12 h-6 rounded-full transition-colors relative ${darkMode ? 'bg-[#0089CF]' : 'bg-gray-300'}`}>
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+
         {user.isAdmin && (
           <button onClick={onAdmin}
             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#0089CF] to-[#12AD2B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-[0.99] transition-transform">
@@ -854,6 +1009,10 @@ export default function App() {
   const [appState, setAppState]   = useState('loading');
   const [user, setUser]           = useState(null);
   const [activeTab, setActiveTab] = useState('discover');
+  const [darkMode, setDarkMode]   = useState(() => localStorage.getItem('darkMode') === '1');
+  const [filters, setFilters]     = useState({});
+  const [showFilter, setShowFilter] = useState(false);
+  const [swipeRemaining, setSwipeRemaining] = useState(null);
 
   const [profiles, setProfiles]           = useState([]);
   const [loadingProfiles, setLoadingP]    = useState(false);
@@ -928,6 +1087,23 @@ export default function App() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [activeConv, activeConvType]);
 
+  // Dark mode persistence
+  useEffect(() => {
+    localStorage.setItem('darkMode', darkMode ? '1' : '0');
+  }, [darkMode]);
+
+  // Swipe remaining au démarrage
+  useEffect(() => {
+    if (appState === 'main') api.getSwipeRemaining().then(r => setSwipeRemaining(r.remaining)).catch(() => {});
+  }, [appState]);
+
+  // Mark as read quand on ouvre une conv user
+  useEffect(() => {
+    if (activeConv && activeConvType === 'user') {
+      api.markRead(activeConv).catch(() => {});
+    }
+  }, [activeConv, activeConvType]);
+
   // Heartbeat toutes les 30 secondes
   useEffect(() => {
     if (appState !== 'main') return;
@@ -943,12 +1119,12 @@ export default function App() {
     }
   }, [appState]);
 
-  const loadProfiles = async () => {
+  const loadProfiles = async (f = filters) => {
     setLoadingP(true);
     try {
       const [profileData, userData] = await Promise.all([
         api.getProfiles(),
-        api.discoverUsers().catch(() => []),
+        api.discoverUsers(f).catch(() => []),
       ]);
       const mixed = [...profileData, ...userData].sort(() => Math.random() - 0.5);
       setProfiles(mixed);
@@ -1018,7 +1194,12 @@ export default function App() {
       if (result.isMatch) {
         setTimeout(async () => { setShowMatch(profile); await loadMatches(); }, 500);
       }
-    } catch (e) { console.error(e); }
+      if (result.remaining !== undefined) setSwipeRemaining(result.remaining);
+      else api.getSwipeRemaining().then(r => setSwipeRemaining(r.remaining)).catch(() => {});
+    } catch (e) {
+      if (e.message?.includes('Limite')) setSwipeRemaining(0);
+      console.error(e);
+    }
   };
 
   const mouseDown  = (e) => { e.preventDefault(); setIsDragging(true); setDragStart({ x: e.clientX, y: e.clientY }); };
@@ -1075,9 +1256,16 @@ export default function App() {
   const handlers = { mouseDown, mouseMove, mouseUp, touchStart, touchMove, touchEnd };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="w-full max-w-[430px] h-screen flex flex-col bg-white relative overflow-hidden shadow-2xl">
+    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'dark bg-gray-950' : 'bg-gray-100'}`}>
+      <div className={`w-full max-w-[430px] h-screen flex flex-col relative overflow-hidden shadow-2xl ${darkMode ? 'dk-card' : 'bg-white'}`}>
         <Toast toasts={toasts} />
+        {showFilter && (
+          <FilterModal
+            filters={filters}
+            onApply={f => { setFilters(f); setProfiles([]); loadProfiles(f); setShowFilter(false); }}
+            onClose={() => setShowFilter(false)}
+          />
+        )}
         {showMatch && (
           <MatchModal
             match={showMatch}
@@ -1099,11 +1287,15 @@ export default function App() {
               profiles={profiles} onAction={handleAction}
               swipeAnim={swipeAnim} cardPos={cardPos} isDragging={isDragging}
               handlers={handlers} loading={loadingProfiles}
+              onFilter={() => setShowFilter(true)}
+              swipeRemaining={swipeRemaining}
             />
           )}
           {activeTab === 'matches' && (
             <MatchesScreen
               matches={matches} userMatches={userMatches} loading={loadingMatches}
+              onReport={id => api.reportUser(id, '').catch(() => {})}
+              onBlock={id => api.blockUser(id).then(() => { loadMatches(); setProfiles(p => p.filter(u => u.id !== id)); }).catch(() => {})}
               onChat={m => {
                 if (m.matchUserId) {
                   setActiveConv(m.matchUserId); setActiveConvType('user');
@@ -1127,7 +1319,7 @@ export default function App() {
             />
           )}
           {activeTab === 'profile' && (
-            <ProfileScreen user={user} setUser={setUser} onLogout={logout} onAdmin={() => setAppState('admin')} />
+            <ProfileScreen user={user} setUser={setUser} onLogout={logout} onAdmin={() => setAppState('admin')} darkMode={darkMode} setDarkMode={setDarkMode} />
           )}
         </div>
 

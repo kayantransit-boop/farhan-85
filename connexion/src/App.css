@@ -1,3 +1,14 @@
+/* ─── DARK MODE ────────────────────────────────────────────────────── */
+.dark { color-scheme: dark; }
+.dark .dk-bg    { background-color: #0f172a !important; }
+.dark .dk-card  { background-color: #1e293b !important; }
+.dark .dk-input { background-color: #1e293b !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+.dark .dk-text  { color: #f1f5f9 !important; }
+.dark .dk-sub   { color: #94a3b8 !important; }
+.dark .dk-border{ border-color: #334155 !important; }
+.dark .dk-hover:hover { background-color: #1e293b !important; }
+.dark .dk-msg-them { background-color: #334155 !important; color: #f1f5f9 !important; }
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
