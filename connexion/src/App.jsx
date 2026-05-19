@@ -25,41 +25,30 @@ function Avatar({ photo, initials, color, size = 14, online = false }) {
 }
 
 function Logo({ size = 'md' }) {
-  const sizes = {
-    sm: { wrap: 'w-8 h-8', heart: 'w-4 h-4', pin: 'w-3 h-3', text: 'text-base', sub: 'text-[10px]' },
-    md: { wrap: 'w-12 h-12', heart: 'w-6 h-6', pin: 'w-4 h-4', text: 'text-xl', sub: 'text-xs' },
-    lg: { wrap: 'w-20 h-20', heart: 'w-10 h-10', pin: 'w-7 h-7', text: 'text-3xl', sub: 'text-sm' },
-  };
-  const s = sizes[size];
+  const img  = { sm: 'w-8 h-8',  md: 'w-12 h-12', lg: 'w-20 h-20' }[size];
+  const text = { sm: 'text-base', md: 'text-xl',   lg: 'text-3xl'  }[size];
+  const sub  = { sm: 'text-[10px]', md: 'text-xs', lg: 'text-sm'   }[size];
   return (
     <div className="flex items-center gap-2.5">
-      <div className={`${s.wrap} rounded-2xl bg-gradient-to-br from-[#0089CF] to-[#12AD2B] flex items-center justify-center shadow-lg relative flex-shrink-0`}>
-        <Heart className={`${s.heart} text-white`} fill="white" />
-        <MapPin className={`${s.pin} text-yellow-300 absolute -bottom-1 -right-1 drop-shadow`} fill="currentColor" />
-      </div>
+      <img src="/logo.svg" alt="Djibouti Rencontre" className={`${img} drop-shadow-lg flex-shrink-0`} />
       <div className="leading-tight">
-        <p className={`${s.text} font-black text-white tracking-tight`}>Djibouti</p>
-        <p className={`${s.sub} font-bold text-white/80 tracking-widest uppercase`}>Rencontre</p>
+        <p className={`${text} font-black text-white tracking-tight`}>Djibouti</p>
+        <p className={`${sub} font-bold text-white/80 tracking-widest uppercase`}>Rencontre</p>
       </div>
     </div>
   );
 }
 
 function LogoDark({ size = 'md' }) {
-  const sizes = {
-    sm: { wrap: 'w-7 h-7', heart: 'w-3.5 h-3.5', pin: 'w-2.5 h-2.5', text: 'text-sm', sub: 'text-[9px]' },
-    md: { wrap: 'w-10 h-10', heart: 'w-5 h-5', pin: 'w-3.5 h-3.5', text: 'text-lg', sub: 'text-[10px]' },
-  };
-  const s = sizes[size] || sizes['md'];
+  const img  = { sm: 'w-7 h-7',    md: 'w-10 h-10'   }[size] || 'w-10 h-10';
+  const text = { sm: 'text-sm',    md: 'text-lg'      }[size] || 'text-lg';
+  const sub  = { sm: 'text-[9px]', md: 'text-[10px]'  }[size] || 'text-[10px]';
   return (
     <div className="flex items-center gap-2">
-      <div className={`${s.wrap} rounded-xl bg-gradient-to-br from-[#0089CF] to-[#12AD2B] flex items-center justify-center shadow relative flex-shrink-0`}>
-        <Heart className={`${s.heart} text-white`} fill="white" />
-        <MapPin className={`${s.pin} text-yellow-300 absolute -bottom-0.5 -right-0.5`} fill="currentColor" />
-      </div>
+      <img src="/logo.svg" alt="Djibouti Rencontre" className={`${img} drop-shadow flex-shrink-0`} />
       <div className="leading-tight">
-        <p className={`${s.text} font-black text-gray-800 tracking-tight`}>Djibouti</p>
-        <p className={`${s.sub} font-bold text-gray-400 tracking-widest uppercase`}>Rencontre</p>
+        <p className={`${text} font-black text-gray-800 tracking-tight`}>Djibouti</p>
+        <p className={`${sub} font-bold text-gray-400 tracking-widest uppercase`}>Rencontre</p>
       </div>
     </div>
   );
@@ -96,8 +85,219 @@ function resizeImage(file, maxSize = 320, quality = 0.75) {
   });
 }
 
-function AuthScreen({ onLogin }) {
-  const [mode, setMode] = useState('login');
+// ─── LANDING PAGE ─────────────────────────────────────────────────────────────
+function LandingScreen({ onLogin, onRegister }) {
+  const stats = [
+    { value: '12 400+', label: 'Membres actifs' },
+    { value: '3 200+', label: 'Matchs réalisés' },
+    { value: '98+', label: 'En ligne maintenant' },
+  ];
+
+  const steps = [
+    { num: '01', title: 'Crée ton profil', desc: 'Quelques secondes suffisent. Ajoute tes photos et une courte bio.' },
+    { num: '02', title: 'Explore & swipe', desc: 'Découvre des profils près de toi. Like, superlike ou passe.' },
+    { num: '03', title: 'Chat & rencontre', desc: 'Lorsque c\'est un match, discutez librement. Les utilisateurs en ligne peuvent être contactés directement.' },
+  ];
+
+  const features = [
+    { icon: '🟢', title: 'En ligne en temps réel', desc: 'Vois qui est connecté et envoie un message immédiatement, sans attendre un match.' },
+    { icon: '🔒', title: 'Profils vérifiés', desc: 'Chaque compte est contrôlé. Signalement et blocage disponibles pour ta sécurité.' },
+    { icon: '💬', title: 'Chat instantané', desc: 'Messages lus, notifications sonores, et historique de conversation complet.' },
+    { icon: '🌍', title: 'Partout à Djibouti', desc: 'Filtre par ville, âge, et trouve des personnes proches de toi.' },
+  ];
+
+  const testimonials = [
+    { name: 'Amina K.', city: 'Djibouti-Ville', text: 'J\'ai trouvé quelqu\'un de formidable en moins d\'une semaine. L\'interface est simple et agréable.', color: 'from-pink-400 to-rose-500', rating: 5 },
+    { name: 'Omar H.', city: 'Ali Sabieh', text: 'Super application, très facile à utiliser. J\'apprécie beaucoup le chat en temps réel.', color: 'from-blue-400 to-cyan-500', rating: 5 },
+    { name: 'Hodan M.', city: 'Tadjoura', text: 'Enfin une appli de rencontre faite pour nous. Je recommande à tous !', color: 'from-violet-400 to-purple-600', rating: 5 },
+  ];
+
+  return (
+    <div className="min-h-screen bg-white overflow-y-auto">
+
+      {/* ── HERO ── */}
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0089CF 0%, #0ab872 50%, #12AD2B 100%)' }}>
+        {/* Cercles décoratifs */}
+        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/10" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/10" />
+        <div className="absolute top-1/2 left-1/3 w-32 h-32 rounded-full bg-white/5" />
+
+        {/* Nav */}
+        <div className="relative z-10 flex items-center justify-between px-6 pt-12 pb-2">
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="Djibouti Rencontre" className="w-9 h-9 drop-shadow" />
+            <span className="text-white font-black text-lg tracking-tight">Djibouti Rencontre</span>
+          </div>
+          <button onClick={onLogin} className="text-white/90 font-semibold text-sm border border-white/30 px-4 py-1.5 rounded-full hover:bg-white/10 transition-colors">
+            Connexion
+          </button>
+        </div>
+
+        {/* Hero content */}
+        <div className="relative z-10 px-6 pt-10 pb-16 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mb-6">
+            <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse" />
+            <span className="text-white text-xs font-semibold">98 personnes en ligne maintenant</span>
+          </div>
+          <h1 className="text-4xl font-black text-white leading-tight mb-4">
+            Trouve l'amour<br/>
+            <span className="text-yellow-300">près de chez toi</span>
+          </h1>
+          <p className="text-white/80 text-base mb-8 leading-relaxed">
+            La première application de rencontre dédiée à Djibouti.<br/>
+            Des rencontres authentiques, des connexions réelles.
+          </p>
+
+          {/* Mock swipe card */}
+          <div className="relative mx-auto w-48 h-64 mb-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-400 to-rose-500 rounded-3xl shadow-2xl rotate-6 opacity-60" />
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-400 to-purple-600 rounded-3xl shadow-2xl -rotate-3 opacity-70" />
+            <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden h-full flex flex-col">
+              <div className="flex-1 bg-gradient-to-br from-[#0089CF] to-[#12AD2B] flex items-center justify-center">
+                <span className="text-5xl font-black text-white">A</span>
+              </div>
+              <div className="p-3 text-left">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-black text-gray-900 text-sm">Amina, 24</p>
+                    <p className="text-gray-400 text-xs">📍 Djibouti-Ville</p>
+                  </div>
+                  <span className="flex items-center gap-1 text-[11px] text-green-500 font-bold">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />En ligne
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Like badge */}
+            <div className="absolute top-4 right-2 bg-green-400 text-white font-black text-xs px-2.5 py-1 rounded-full rotate-12 shadow-lg border-2 border-white">
+              LIKE ❤️
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button onClick={onRegister}
+              className="w-full py-4 bg-white font-black text-base rounded-2xl shadow-xl active:scale-95 transition-transform"
+              style={{ color: '#0089CF' }}>
+              Commencer gratuitement →
+            </button>
+            <button onClick={onLogin}
+              className="w-full py-3.5 bg-white/15 backdrop-blur-sm text-white font-semibold text-base rounded-2xl border border-white/30 active:scale-95 transition-transform">
+              J'ai déjà un compte
+            </button>
+          </div>
+          <p className="text-white/40 text-[11px] mt-3">Gratuit · Sans engagement · 100% Djibouti</p>
+        </div>
+      </div>
+
+      {/* ── STATS ── */}
+      <div className="bg-gray-50 border-b border-gray-100">
+        <div className="flex divide-x divide-gray-200">
+          {stats.map((s, i) => (
+            <div key={i} className="flex-1 text-center py-5 px-2">
+              <p className="text-2xl font-black" style={{ color: '#0089CF' }}>{s.value}</p>
+              <p className="text-gray-500 text-xs mt-0.5 font-medium">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── COMMENT ÇA MARCHE ── */}
+      <div className="px-6 py-12">
+        <p className="text-xs font-bold tracking-widest text-center mb-2" style={{ color: '#0089CF' }}>COMMENT ÇA MARCHE</p>
+        <h2 className="text-2xl font-black text-gray-900 text-center mb-8">3 étapes pour trouver<br/>quelqu'un de spécial</h2>
+        <div className="space-y-6">
+          {steps.map((s, i) => (
+            <div key={i} className="flex gap-4 items-start">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-black text-white text-sm"
+                style={{ background: 'linear-gradient(135deg, #0089CF, #12AD2B)' }}>
+                {s.num}
+              </div>
+              <div className="pt-1">
+                <p className="font-black text-gray-900 text-base">{s.title}</p>
+                <p className="text-gray-500 text-sm mt-0.5 leading-relaxed">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── FONCTIONNALITÉS ── */}
+      <div className="px-6 py-10 bg-gray-50">
+        <p className="text-xs font-bold tracking-widest text-center mb-2" style={{ color: '#12AD2B' }}>FONCTIONNALITÉS</p>
+        <h2 className="text-2xl font-black text-gray-900 text-center mb-8">Tout ce qu'il te faut<br/>pour bien rencontrer</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {features.map((f, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <span className="text-2xl mb-3 block">{f.icon}</span>
+              <p className="font-bold text-gray-900 text-sm mb-1">{f.title}</p>
+              <p className="text-gray-400 text-xs leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── TÉMOIGNAGES ── */}
+      <div className="px-6 py-12">
+        <p className="text-xs font-bold tracking-widest text-center mb-2" style={{ color: '#0089CF' }}>TÉMOIGNAGES</p>
+        <h2 className="text-2xl font-black text-gray-900 text-center mb-8">Ils ont trouvé<br/>leur match ❤️</h2>
+        <div className="space-y-4">
+          {testimonials.map((t, i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-black text-base`}>
+                  {t.name[0]}
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 text-sm">{t.name}</p>
+                  <p className="text-gray-400 text-xs">📍 {t.city}</p>
+                </div>
+                <div className="ml-auto flex gap-0.5">
+                  {[...Array(t.rating)].map((_, j) => <span key={j} className="text-yellow-400 text-sm">★</span>)}
+                </div>
+              </div>
+              <p className="text-gray-600 text-sm leading-relaxed italic">"{t.text}"</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CTA FINAL ── */}
+      <div className="mx-6 mb-10 rounded-3xl p-8 text-center" style={{ background: 'linear-gradient(135deg, #0089CF 0%, #12AD2B 100%)' }}>
+        <h2 className="text-2xl font-black text-white mb-2">Prêt(e) à te lancer ?</h2>
+        <p className="text-white/70 text-sm mb-6">Rejoins des milliers de Djiboutiens qui ont déjà trouvé leur match.</p>
+        <button onClick={onRegister}
+          className="w-full py-4 bg-white font-black text-base rounded-2xl shadow-xl active:scale-95 transition-transform mb-3"
+          style={{ color: '#0089CF' }}>
+          Créer mon profil gratuit
+        </button>
+        <button onClick={onLogin}
+          className="w-full py-3 text-white/80 font-medium text-sm">
+          J'ai déjà un compte → Se connecter
+        </button>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div className="bg-gray-900 px-6 py-8">
+        <div className="flex items-center gap-2 mb-4">
+          <img src="/logo.svg" alt="Djibouti Rencontre" className="w-8 h-8 drop-shadow" />
+          <span className="text-white font-black">Djibouti Rencontre</span>
+        </div>
+        <p className="text-gray-500 text-xs leading-relaxed mb-4">
+          La plateforme de rencontre #1 à Djibouti. Rencontres sérieuses et authentiques.
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-500 border-t border-gray-800 pt-4">
+          <span>© 2025 Djibouti Rencontre</span>
+          <span className="cursor-pointer hover:text-gray-300">Confidentialité</span>
+          <span className="cursor-pointer hover:text-gray-300">Conditions d'utilisation</span>
+          <span className="cursor-pointer hover:text-gray-300">Contact</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({ onLogin, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ email: '', password: '', name: '' });
   const [photo, setPhoto] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -529,7 +729,7 @@ function ProfileModal({ profile, onClose, onChat, onReport, onBlock }) {
 function MatchCard({ name, photo, initials, color, city, age, online, badge, onClick, onProfile }) {
   return (
     <div className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
-      <button onClick={onProfile || onClick} className="flex-shrink-0">
+      <button onClick={online ? onClick : (onProfile || onClick)} className="flex-shrink-0">
         <Avatar photo={photo} initials={initials} color={color} size={14} online={online} />
       </button>
       <button onClick={onClick} className="flex-1 min-w-0 text-left">
@@ -556,41 +756,84 @@ function MatchCard({ name, photo, initials, color, city, age, online, badge, onC
   );
 }
 
-function MatchesScreen({ matches, userMatches, onChat, loading, onReport, onBlock }) {
+function MatchesScreen({ matches, userMatches, onlineUsers, onChat, onChatDirect, loading, onReport, onBlock }) {
   const [viewingProfile, setViewingProfile] = useState(null);
   const total = matches.length + userMatches.length;
+  // Utilisateurs en ligne qui ne sont pas déjà dans les matchs
+  const matchedIds = new Set(userMatches.map(m => m.matchUserId));
+  const newOnline = (onlineUsers || []).filter(u => !matchedIds.has(u.id));
+
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="px-5 pt-12 pb-4 border-b border-gray-100 flex-shrink-0">
         <h2 className="text-xl font-bold text-gray-900">Matchs</h2>
         <p className="text-gray-400 text-sm mt-0.5">{total} match{total !== 1 ? 's' : ''}</p>
       </div>
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-4 border-gray-100 border-t-[#FD297B] animate-spin" />
-        </div>
-      ) : total === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center px-8 pb-20">
-          <Heart className="w-14 h-14 text-gray-200 mx-auto mb-4" fill="currentColor" />
-          <h3 className="text-gray-600 text-lg font-bold mb-1">Pas encore de matchs</h3>
-          <p className="text-gray-400 text-sm">Continue d'explorer !</p>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-50 pb-20">
-          {userMatches.map(m => (
-            <MatchCard key={`u_${m.matchUserId}`} name={m.name} photo={m.photo} initials={m.initials}
-              color={m.color} city={m.city} age={m.age} online={m.online} badge
-              onClick={() => onChat(m)}
-              onProfile={() => setViewingProfile({ ...m, chatData: m })} />
-          ))}
-          {matches.map(m => (
-            <MatchCard key={`p_${m.id}`} name={m.profile?.name} photo={m.profile?.photo}
-              initials={m.profile?.initials} color={m.profile?.color}
-              city={m.profile?.city} age={m.profile?.age}
-              onClick={() => onChat(m)} />
-          ))}
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto pb-20">
+        {/* Section utilisateurs en ligne (sans match) */}
+        {newOnline.length > 0 && (
+          <div>
+            <div className="px-5 py-3 flex items-center gap-2 bg-green-50 border-b border-green-100">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs font-bold text-green-700 uppercase tracking-wide">En ligne maintenant · {newOnline.length}</span>
+            </div>
+            {newOnline.map(u => (
+              <div key={`online_${u.id}`} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors border-b border-gray-50">
+                <div className="flex-shrink-0">
+                  <Avatar photo={u.photo} initials={u.initials} color={u.color} size={14} online />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-900 font-bold">{u.name}</span>
+                    <span className="text-[10px] text-green-500 font-semibold">● En ligne</span>
+                  </div>
+                  <p className="text-gray-400 text-sm">{u.city} · {u.age} ans</p>
+                </div>
+                <button
+                  onClick={() => onChatDirect(u)}
+                  className="flex-shrink-0 flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Écrire
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Matchs existants */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 rounded-full border-4 border-gray-100 border-t-[#FD297B] animate-spin" />
+          </div>
+        ) : total === 0 && newOnline.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center px-8 py-20">
+            <Heart className="w-14 h-14 text-gray-200 mx-auto mb-4" fill="currentColor" />
+            <h3 className="text-gray-600 text-lg font-bold mb-1">Pas encore de matchs</h3>
+            <p className="text-gray-400 text-sm">Continue d'explorer !</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {total > 0 && (
+              <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Matchs · {total}</span>
+              </div>
+            )}
+            {userMatches.map(m => (
+              <MatchCard key={`u_${m.matchUserId}`} name={m.name} photo={m.photo} initials={m.initials}
+                color={m.color} city={m.city} age={m.age} online={m.online} badge
+                onClick={() => onChat(m)}
+                onProfile={() => setViewingProfile({ ...m, chatData: m })} />
+            ))}
+            {matches.map(m => (
+              <MatchCard key={`p_${m.id}`} name={m.profile?.name} photo={m.profile?.photo}
+                initials={m.profile?.initials} color={m.profile?.color}
+                city={m.profile?.city} age={m.profile?.age}
+                onClick={() => onChat(m)} />
+            ))}
+          </div>
+        )}
+      </div>
       <ProfileModal
         profile={viewingProfile}
         onClose={() => setViewingProfile(null)}
@@ -603,14 +846,17 @@ function MatchesScreen({ matches, userMatches, onChat, loading, onReport, onBloc
 }
 
 // ─── MESSAGES ─────────────────────────────────────────────────────────────────
-function MessagesScreen({ matches, userMatches, convs, activeConv, activeConvType, setActiveConv, newMsg, setNewMsg, onSend, onOpen, loadingConv, endRef }) {
+function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, activeConvType, setActiveConv, newMsg, setNewMsg, onSend, onOpen, loadingConv, endRef }) {
   if (activeConv) {
     const key = `${activeConvType === 'user' ? 'u' : 'p'}_${activeConv}`;
     const messages = convs[key] || [];
     let name, photo, initials, color, online = false, isUser = activeConvType === 'user';
     if (isUser) {
       const um = userMatches.find(m => m.matchUserId === activeConv);
-      name = um?.name; photo = um?.photo; initials = um?.initials; color = um?.color; online = !!um?.online;
+      const ou = (onlineUsers || []).find(u => u.id === activeConv);
+      name = um?.name || ou?.name; photo = um?.photo || ou?.photo;
+      initials = um?.initials || ou?.initials; color = um?.color || ou?.color;
+      online = !!(um?.online || ou);
     } else {
       const pm = matches.find(m => m.profileId === activeConv);
       name = pm?.profile?.name; photo = pm?.profile?.photo;
@@ -1009,6 +1255,7 @@ export default function App() {
   const [user, setUser]           = useState(null);
   const [activeTab, setActiveTab] = useState('discover');
   const [darkMode, setDarkMode]   = useState(() => localStorage.getItem('darkMode') === '1');
+  const [authMode, setAuthMode]   = useState('login');
   const [filters, setFilters]     = useState({});
   const [showFilter, setShowFilter] = useState(false);
   const [swipeRemaining, setSwipeRemaining] = useState(null);
@@ -1023,6 +1270,7 @@ export default function App() {
 
   const [matches, setMatches]             = useState([]);
   const [userMatches, setUserMatches]     = useState([]);
+  const [onlineUsers, setOnlineUsers]     = useState([]);
   const [loadingMatches, setLoadingM]     = useState(false);
   const [convs, setConvs]                 = useState({});
   const [activeConv, setActiveConv]       = useState(null);
@@ -1041,8 +1289,36 @@ export default function App() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
 
+  const playNotifSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Note 1 : ding aigu
+      const o1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      o1.connect(g1); g1.connect(ctx.destination);
+      o1.type = 'sine';
+      o1.frequency.setValueAtTime(1046, ctx.currentTime);
+      o1.frequency.exponentialRampToValueAtTime(1318, ctx.currentTime + 0.08);
+      g1.gain.setValueAtTime(0.25, ctx.currentTime);
+      g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      o1.start(ctx.currentTime);
+      o1.stop(ctx.currentTime + 0.4);
+      // Note 2 : écho grave
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
+      g2.gain.setValueAtTime(0.15, ctx.currentTime + 0.12);
+      g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      o2.start(ctx.currentTime + 0.12);
+      o2.stop(ctx.currentTime + 0.5);
+    } catch (e) {}
+  };
+
   const notify = (sender, initials, text) => {
     pushToast(sender, initials, text);
+    playNotifSound();
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(`💬 ${sender}`, { body: text, icon: '/icon-192.png', badge: '/icon-192.png' });
     }
@@ -1050,10 +1326,10 @@ export default function App() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) { setAppState('auth'); return; }
+    if (!token) { setAppState('landing'); return; }
     api.getMe()
       .then(u => { setUser(u); setAppState('main'); })
-      .catch(() => { localStorage.removeItem('token'); setAppState('auth'); });
+      .catch(() => { localStorage.removeItem('token'); setAppState('landing'); });
   }, []);
 
   useEffect(() => {
@@ -1085,6 +1361,15 @@ export default function App() {
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [activeConv, activeConvType]);
+
+  // Polling utilisateurs en ligne toutes les 15s
+  useEffect(() => {
+    if (appState !== 'main') return;
+    const fetch = () => api.getOnlineUsers().then(setOnlineUsers).catch(() => {});
+    fetch();
+    const t = setInterval(fetch, 15000);
+    return () => clearInterval(t);
+  }, [appState]);
 
   // Dark mode persistence
   useEffect(() => {
@@ -1249,7 +1534,8 @@ export default function App() {
   };
 
   if (appState === 'loading') return <LoadingScreen />;
-  if (appState === 'auth')   return <AuthScreen onLogin={u => { setUser(u); setAppState('main'); }} />;
+  if (appState === 'landing') return <LandingScreen onLogin={() => { setAppState('auth'); setAuthMode('login'); }} onRegister={() => { setAppState('auth'); setAuthMode('register'); }} />;
+  if (appState === 'auth')   return <AuthScreen onLogin={u => { setUser(u); setAppState('main'); }} initialMode={authMode} />;
   if (appState === 'admin')  return <AdminPanel onBack={() => setAppState('main')} />;
 
   const handlers = { mouseDown, mouseMove, mouseUp, touchStart, touchMove, touchEnd };
@@ -1292,7 +1578,7 @@ export default function App() {
           )}
           {activeTab === 'matches' && (
             <MatchesScreen
-              matches={matches} userMatches={userMatches} loading={loadingMatches}
+              matches={matches} userMatches={userMatches} onlineUsers={onlineUsers} loading={loadingMatches}
               onReport={id => api.reportUser(id, '').catch(() => {})}
               onBlock={id => api.blockUser(id).then(() => { loadMatches(); setProfiles(p => p.filter(u => u.id !== id)); }).catch(() => {})}
               onChat={m => {
@@ -1304,11 +1590,15 @@ export default function App() {
                   setActiveTab('messages'); loadConv(m.profileId, 'profile');
                 }
               }}
+              onChatDirect={u => {
+                setActiveConv(u.id); setActiveConvType('user');
+                setActiveTab('messages'); loadConv(u.id, 'user');
+              }}
             />
           )}
           {activeTab === 'messages' && (
             <MessagesScreen
-              matches={matches} userMatches={userMatches} convs={convs}
+              matches={matches} userMatches={userMatches} onlineUsers={onlineUsers} convs={convs}
               activeConv={activeConv} activeConvType={activeConvType}
               setActiveConv={(id, type) => { setActiveConv(id); setActiveConvType(type || 'profile'); }}
               newMsg={newMsg} setNewMsg={setNewMsg}
