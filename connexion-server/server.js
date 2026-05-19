@@ -156,17 +156,21 @@ function sanitize(str, max = 500) {
   return String(str || '').replace(/[<>"'`]/g, '').trim().slice(0, max);
 }
 
-function auth(req, res, next) {
+async function auth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentification requise' });
   }
   try {
     req.user = jwt.verify(header.slice(7), JWT_SECRET);
-    next();
   } catch {
     return res.status(401).json({ error: 'Token invalide ou expiré' });
   }
+  const user = await User.findById(req.user.userId).select('isBanned');
+  if (!user || user.isBanned) {
+    return res.status(403).json({ error: 'Compte suspendu. Contactez l\'administrateur.' });
+  }
+  next();
 }
 
 async function adminAuth(req, res, next) {
@@ -188,7 +192,7 @@ async function initData() {
     await User.create({
       _id: uuidv4(),
       email: adminEmail,
-      password: bcrypt.hashSync('Admin@2025!', 12),
+      password: bcrypt.hashSync(process.env.ADMIN_PASSWORD || require('crypto').randomBytes(24).toString('hex'), 12),
       name: 'Administrateur',
       age: 30,
       city: 'Djibouti',
@@ -196,9 +200,7 @@ async function initData() {
       tags: [],
       isAdmin: true,
     });
-    console.log('\n👑 Compte admin créé :');
-    console.log('   Email    : admin@djibouti-rencontre.dj');
-    console.log('   Password : Admin@2025!\n');
+    console.log('\n👑 Compte admin créé : admin@djibouti-rencontre.dj');
   }
 
   const profileCount = await Profile.countDocuments();
@@ -244,6 +246,7 @@ app.use(async (req, res, next) => {
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 app.post('/api/auth/register',
+  authLimiter,
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 8 }).matches(/[A-Z]/).matches(/[0-9]/),
   body('name').trim().isLength({ min: 2, max: 50 }),
@@ -293,6 +296,7 @@ app.post('/api/auth/register',
 );
 
 app.post('/api/auth/login',
+  authLimiter,
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty(),
   async (req, res) => {
@@ -315,6 +319,7 @@ app.post('/api/auth/login',
 );
 
 app.post('/api/auth/forgot-password',
+  authLimiter,
   body('email').isEmail().normalizeEmail(),
   async (req, res) => {
     const errors = validationResult(req);
@@ -325,9 +330,7 @@ app.post('/api/auth/forgot-password',
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
     await PasswordReset.deleteMany({ userId: user._id });
     await PasswordReset.create({ _id: uuidv4(), userId: user._id, token, expires });
-    const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
-    console.log(`🔑 Reset password lien pour ${user.email}: ${resetUrl}`);
-    res.json({ success: true, resetUrl: process.env.NODE_ENV !== 'production' ? resetUrl : undefined });
+    res.json({ success: true });
   }
 );
 
@@ -415,6 +418,8 @@ app.get('/api/matches', auth, async (req, res) => {
 // ─── MESSAGES ─────────────────────────────────────────────────────────────────
 
 app.get('/api/messages/:profileId', auth, async (req, res) => {
+  const isMatch = await Match.findOne({ userId: req.user.userId, profileId: req.params.profileId });
+  if (!isMatch) return res.status(403).json({ error: 'Pas de match avec cet utilisateur' });
   const convId = [req.user.userId, req.params.profileId].sort().join('_');
   const msgs = await Message.find({ convId }).sort({ date: 1 });
   res.json(msgs);
@@ -457,6 +462,28 @@ app.get('/api/users/status/:userId', auth, async (req, res) => {
   res.json({ online: u ? isOnline(u.lastSeen) : false });
 });
 
+app.get('/api/users/online', auth, async (req, res) => {
+  const [blockedByMe, blockedMe] = await Promise.all([
+    Block.find({ blockerId: req.user.userId }).distinct('blockedId'),
+    Block.find({ blockedId: req.user.userId }).distinct('blockerId'),
+  ]);
+  const excluded = [...new Set([...blockedByMe, ...blockedMe, req.user.userId])];
+  const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
+  const users = await User.find({
+    _id: { $nin: excluded },
+    lastSeen: { $gte: twoMinsAgo },
+    isBanned: false,
+    isAdmin: false,
+  }).select('_id name age city photo lastSeen').limit(50);
+  res.json(users.map(u => ({
+    id: u._id, name: u.name, age: u.age, city: u.city,
+    photo: u.photo,
+    initials: u.name.slice(0, 2).toUpperCase(),
+    color: 'from-[#0089CF] to-[#12AD2B]',
+    online: true,
+  })));
+});
+
 // ─── USER-TO-USER DISCOVERY ───────────────────────────────────────────────────
 
 app.get('/api/users/discover', auth, async (req, res) => {
@@ -475,7 +502,7 @@ app.get('/api/users/discover', auth, async (req, res) => {
     if (minAge) filter.age.$gte = parseInt(minAge);
     if (maxAge) filter.age.$lte = parseInt(maxAge);
   }
-  if (city && city.trim()) filter.city = new RegExp(city.trim(), 'i');
+  if (city && city.trim()) filter.city = new RegExp(city.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
   const users = await User.find(filter).select('_id name age city bio tags photo photos lastSeen').limit(20);
   res.json(users.map(u => ({
     id: u._id, name: u.name, age: u.age, city: u.city,
@@ -499,6 +526,8 @@ app.post('/api/users/report/:reportedId', auth,
   async (req, res) => {
     const { reportedId } = req.params;
     if (reportedId === req.user.userId) return res.status(400).json({ error: 'Impossible de vous signaler vous-même' });
+    const alreadyReported = await Report.findOne({ reporterId: req.user.userId, reportedId });
+    if (alreadyReported) return res.json({ success: true });
     await Report.create({ _id: uuidv4(), reporterId: req.user.userId, reportedId, reason: sanitize(req.body.reason || '', 200) });
     res.json({ success: true });
   }
@@ -609,10 +638,18 @@ app.post('/api/users/messages/:matchUserId', auth,
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ error: 'Message invalide' });
     const { matchUserId } = req.params;
-    const isMatch = await UserMatch.findOne({
-      $or: [{ user1Id: req.user.userId, user2Id: matchUserId }, { user1Id: matchUserId, user2Id: req.user.userId }],
-    });
-    if (!isMatch) return res.status(403).json({ error: 'Pas de match avec cet utilisateur' });
+    const [isMatch, targetUser] = await Promise.all([
+      UserMatch.findOne({
+        $or: [{ user1Id: req.user.userId, user2Id: matchUserId }, { user1Id: matchUserId, user2Id: req.user.userId }],
+      }),
+      User.findById(matchUserId).select('lastSeen'),
+    ]);
+    const targetOnline = targetUser && isOnline(targetUser.lastSeen);
+    if (!isMatch && !targetOnline) return res.status(403).json({ error: 'Pas de match avec cet utilisateur' });
+    // Auto-créer le match si l'utilisateur cible est en ligne
+    if (!isMatch && targetOnline) {
+      await UserMatch.create({ _id: uuidv4(), user1Id: req.user.userId, user2Id: matchUserId });
+    }
     const convId = [req.user.userId, matchUserId].sort().join('__');
     const msg = await Message.create({ _id: uuidv4(), convId, from: req.user.userId, text: sanitize(req.body.text, 1000) });
     res.status(201).json(msg);
@@ -775,8 +812,8 @@ app.post('/api/admin/force-match', adminAuth, async (req, res) => {
     await Message.create({ _id: uuidv4(), convId, from: user2Id, text: 'Salut ! On est en match 🎉' });
   }
   // Générer des tokens pour les deux (pour le test)
-  const tokenA = jwt.sign({ userId: u1._id, email: u1.email }, process.env.JWT_SECRET || 'secret-key-djibouti-2025', { expiresIn: '2h' });
-  const tokenB = jwt.sign({ userId: u2._id, email: u2.email }, process.env.JWT_SECRET || 'secret-key-djibouti-2025', { expiresIn: '2h' });
+  const tokenA = jwt.sign({ userId: u1._id, email: u1.email }, JWT_SECRET, { expiresIn: '2h' });
+  const tokenB = jwt.sign({ userId: u2._id, email: u2.email }, JWT_SECRET, { expiresIn: '2h' });
   res.json({ success: true, matchCreated: !existing, tokenA, tokenB, nameA: u1.name, nameB: u2.name });
 });
 
