@@ -695,6 +695,26 @@ app.put('/api/profile', auth,
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
 
+app.put('/api/admin/change-password',
+  adminAuth,
+  body('currentPassword').notEmpty(),
+  body('newPassword').isLength({ min: 8 }).matches(/[A-Z]/).matches(/[0-9]/),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Nouveau mot de passe invalide : min 8 car., 1 majuscule, 1 chiffre' });
+
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
+    if (!bcrypt.compareSync(req.body.currentPassword, user.password)) {
+      return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    }
+
+    await User.updateOne({ _id: user._id }, { password: bcrypt.hashSync(req.body.newPassword, 12) });
+    res.json({ success: true });
+  }
+);
+
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   const [totalUsers, totalMatches, totalMessages, totalSwipes] = await Promise.all([
     User.countDocuments(),

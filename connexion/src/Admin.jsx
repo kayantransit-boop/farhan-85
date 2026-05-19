@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft, Shield, Users, Heart, MessageCircle, Activity,
-  Trash2, Edit3, Plus, Check, X, MapPin, Star, Ban, Crown
+  Trash2, Edit3, Plus, Check, X, MapPin, Star, Ban, Crown, KeyRound, Eye, EyeOff
 } from 'lucide-react';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -309,6 +309,111 @@ function ProfilesTab() {
   );
 }
 
+// ─── CHANGE PASSWORD MODAL ────────────────────────────────────────────────────
+function ChangePasswordModal({ onClose }) {
+  const [form, setForm]       = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [show, setShow]       = useState({ current: false, new: false, confirm: false });
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const toggle = (k) => () => setShow(s => ({ ...s, [k]: !s[k] }));
+
+  const submit = async () => {
+    setError('');
+    if (form.newPassword !== form.confirmPassword) {
+      setError('Les nouveaux mots de passe ne correspondent pas');
+      return;
+    }
+    setSaving(true);
+    try {
+      await req('PUT', '/admin/change-password', {
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
+      });
+      setSuccess(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <Modal title="Mot de passe modifié" onClose={onClose}>
+        <div className="flex flex-col items-center gap-4 py-4">
+          <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+            <Check className="w-7 h-7 text-green-500" />
+          </div>
+          <p className="text-gray-600 text-sm text-center">Ton mot de passe admin a été changé avec succès.</p>
+          <button onClick={onClose} className={`w-full py-3 rounded-xl ${G} text-white font-bold text-sm`}>
+            Fermer
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal title="Changer le mot de passe" onClose={onClose}>
+      {error && <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm">{error}</div>}
+      <div className="space-y-3">
+        <Field label="Mot de passe actuel">
+          <div className="relative">
+            <input
+              type={show.current ? 'text' : 'password'}
+              value={form.currentPassword}
+              onChange={set('currentPassword')}
+              placeholder="••••••••"
+              className={`${inp} pr-10`}
+            />
+            <button type="button" onClick={toggle('current')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {show.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </Field>
+
+        <Field label="Nouveau mot de passe">
+          <div className="relative">
+            <input
+              type={show.new ? 'text' : 'password'}
+              value={form.newPassword}
+              onChange={set('newPassword')}
+              placeholder="Min 8 car., 1 majuscule, 1 chiffre"
+              className={`${inp} pr-10`}
+            />
+            <button type="button" onClick={toggle('new')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {show.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </Field>
+
+        <Field label="Confirmer le nouveau mot de passe">
+          <div className="relative">
+            <input
+              type={show.confirm ? 'text' : 'password'}
+              value={form.confirmPassword}
+              onChange={set('confirmPassword')}
+              placeholder="••••••••"
+              className={`${inp} pr-10`}
+            />
+            <button type="button" onClick={toggle('confirm')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {show.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </Field>
+
+        <button onClick={submit} disabled={saving || !form.currentPassword || !form.newPassword || !form.confirmPassword}
+          className={`w-full py-3 rounded-xl ${G} text-white font-bold text-sm disabled:opacity-50 mt-2`}>
+          {saving ? 'Modification...' : 'Changer le mot de passe'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── MATCHES TAB ──────────────────────────────────────────────────────────────
 function MatchesTab() {
   const [matches, setMatches] = useState([]);
@@ -375,6 +480,7 @@ function MessagesTab() {
 // ─── MAIN ADMIN ───────────────────────────────────────────────────────────────
 export default function AdminPanel({ onBack }) {
   const [tab, setTab] = useState('stats');
+  const [showChangePwd, setShowChangePwd] = useState(false);
 
   const tabs = [
     { id: 'stats',    label: 'Stats',     icon: Activity },
@@ -393,10 +499,15 @@ export default function AdminPanel({ onBack }) {
             <ChevronLeft className="w-5 h-5 text-white" />
           </button>
           <Shield className="w-6 h-6 text-white" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-white font-black text-lg leading-tight">Administration</h1>
             <p className="text-white/70 text-xs">Djibouti-Rencontre</p>
           </div>
+          <button onClick={() => setShowChangePwd(true)}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            title="Changer le mot de passe">
+            <KeyRound className="w-5 h-5 text-white" />
+          </button>
         </div>
 
         {/* Tabs */}
@@ -418,6 +529,8 @@ export default function AdminPanel({ onBack }) {
           {tab === 'matches'  && <MatchesTab />}
           {tab === 'messages' && <MessagesTab />}
         </div>
+
+        {showChangePwd && <ChangePasswordModal onClose={() => setShowChangePwd(false)} />}
       </div>
     </div>
   );
