@@ -625,9 +625,7 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
               <>
                 {/* Photo de profil */}
                 <div className="flex flex-col items-center gap-2 py-2">
-                  <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
-                  <button type="button" onClick={() => photoRef.current.click()}
-                    className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-dashed border-gray-200 hover:border-[#FD297B] transition-colors group">
+                  <label className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-dashed border-gray-200 hover:border-[#FD297B] transition-colors group cursor-pointer">
                     {photo
                       ? <img src={photo} alt="photo" className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-1">
@@ -638,7 +636,8 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Camera className="w-6 h-6 text-white" />
                     </div>
-                  </button>
+                    <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+                  </label>
                   <p className="text-[10px] text-gray-400">Appuyez pour ajouter une photo</p>
                 </div>
 
@@ -1338,13 +1337,10 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
                 </div>
             }
             {editing && (
-              <>
-                <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
-                <button type="button" onClick={() => photoRef.current.click()}
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white">
-                  <Camera className="w-4 h-4 text-white" />
-                </button>
-              </>
+              <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white cursor-pointer">
+                <Camera className="w-4 h-4 text-white" />
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+              </label>
             )}
           </div>
         </div>
