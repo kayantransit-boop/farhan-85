@@ -9,11 +9,12 @@ import AdminPanel from './Admin';
 
 const G = 'bg-gradient-to-r from-[#0089CF] to-[#12AD2B]';
 
-function Avatar({ photo, initials, color, size = 14, online = false }) {
+function Avatar({ photo, photos, initials, color, size = 14, online = false }) {
+  const displayPhoto = photo || (photos && photos[0]) || '';
   return (
     <div className="relative flex-shrink-0" style={{ width: size * 4, height: size * 4 }}>
-      {photo
-        ? <img src={photo} alt={initials} className="w-full h-full rounded-full object-cover" />
+      {displayPhoto
+        ? <img src={displayPhoto} alt={initials} className="w-full h-full rounded-full object-cover" />
         : <div className={`w-full h-full rounded-full bg-gradient-to-br ${color || 'from-pink-400 to-purple-500'} flex items-center justify-center font-bold text-white`}
             style={{ fontSize: size * 1.1 }}>{initials}</div>
       }
@@ -1329,13 +1330,14 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
         <div className={`h-40 ${G}`} />
         <div className="absolute inset-x-0 bottom-0 translate-y-1/2 flex justify-center">
           <div className="relative">
-            {draft.photo || user.photo
-              ? <img src={editing ? (draft.photo || user.photo) : user.photo} alt={user.name}
-                  className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-xl" />
-              : <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FD297B] to-[#FF655B] flex items-center justify-center text-3xl font-bold text-white ring-4 ring-white shadow-xl">
-                  {user.name?.charAt(0).toUpperCase()}
-                </div>
-            }
+            {(() => {
+              const mainPhoto = (editing ? draft.photo : user.photo) || (user.photos || [])[0] || '';
+              return mainPhoto
+                ? <img src={mainPhoto} alt={user.name} className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-xl" />
+                : <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FD297B] to-[#FF655B] flex items-center justify-center text-3xl font-bold text-white ring-4 ring-white shadow-xl">
+                    {user.name?.charAt(0).toUpperCase()}
+                  </div>;
+            })()}
             {editing && (
               <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white cursor-pointer">
                 <Camera className="w-4 h-4 text-white" />
