@@ -324,6 +324,10 @@ function LandingScreen({ onLogin, onRegister }) {
           <span className="cursor-pointer hover:text-gray-300">Conditions d'utilisation</span>
           <span className="cursor-pointer hover:text-gray-300">Contact</span>
         </div>
+        <div className="mt-4 pt-3 border-t border-gray-800 text-center">
+          <span className="text-[11px] text-gray-600 tracking-widest uppercase">Conçu &amp; développé par </span>
+          <span className="text-[12px] font-black bg-gradient-to-r from-[#0089CF] to-[#12AD2B] bg-clip-text text-transparent tracking-wide">Farhan</span>
+        </div>
       </div>
     </div>
   );
