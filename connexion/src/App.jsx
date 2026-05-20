@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Heart, X, Star, MessageCircle, User, Shield,
   ChevronLeft, Send, MapPin, Edit3, Check, Eye, EyeOff, LogOut, Mail, Camera,
-  SlidersHorizontal, Moon, Sun, Flag, Ban, CheckCheck, AlertCircle, Flame
+  SlidersHorizontal, Moon, Sun, Flag, Ban, CheckCheck, AlertCircle, Flame, UserPlus, Copy
 } from 'lucide-react';
 import * as api from './api';
 import AdminPanel from './Admin';
@@ -1255,6 +1255,36 @@ function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, 
   );
 }
 
+// ─── INVITE BUTTON ────────────────────────────────────────────────────────────
+function InviteButton() {
+  const [copied, setCopied] = useState(false);
+  const APP_URL = 'https://djib-rencontre.site';
+  const MSG = `💚 Rejoins-moi sur Djibouti Rencontre — la 1ère app de rencontre djiboutienne !\n👉 ${APP_URL}`;
+
+  const handleInvite = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Djibouti Rencontre', text: MSG, url: APP_URL });
+      } catch (_) {}
+    } else {
+      await navigator.clipboard.writeText(MSG);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
+
+  return (
+    <button onClick={handleInvite}
+      className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+      style={{ background: 'linear-gradient(135deg, #0089CF 0%, #12AD2B 100%)', color: 'white' }}>
+      {copied
+        ? <><Copy className="w-4 h-4" />Lien copié !</>
+        : <><UserPlus className="w-4 h-4" />Inviter un ami</>
+      }
+    </button>
+  );
+}
+
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode }) {
   const [editing, setEditing] = useState(false);
@@ -1433,6 +1463,8 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
             <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </button>
         </div>
+
+        <InviteButton />
 
         {user.isAdmin && (
           <button onClick={onAdmin}
