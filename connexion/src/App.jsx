@@ -85,6 +85,38 @@ function resizeImage(file, maxSize = 320, quality = 0.75) {
   });
 }
 
+// ─── PWA INSTALL BUTTON ───────────────────────────────────────────────────────
+function InstallButton() {
+  const [prompt, setPrompt] = useState(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setInstalled(true));
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  if (installed || !prompt) return null;
+
+  const install = async () => {
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === 'accepted') setInstalled(true);
+    setPrompt(null);
+  };
+
+  return (
+    <button onClick={install}
+      className="w-full py-3.5 flex items-center justify-center gap-2 bg-white/15 backdrop-blur-sm text-white font-semibold text-base rounded-2xl border border-white/30 active:scale-95 transition-transform">
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+      </svg>
+      Installer l'application
+    </button>
+  );
+}
+
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 function LandingScreen({ onLogin, onRegister }) {
   const stats = [
@@ -184,6 +216,7 @@ function LandingScreen({ onLogin, onRegister }) {
               className="w-full py-3.5 bg-white/15 backdrop-blur-sm text-white font-semibold text-base rounded-2xl border border-white/30 active:scale-95 transition-transform">
               J'ai déjà un compte
             </button>
+            <InstallButton />
           </div>
           <p className="text-white/40 text-[11px] mt-3">Gratuit · Sans engagement · 100% Djibouti</p>
         </div>
