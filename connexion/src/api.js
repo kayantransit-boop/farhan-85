@@ -40,6 +40,7 @@ export const getUserMessages   = (matchUserId)                => req('GET',    `
 export const sendUserMessage   = (matchUserId, text)          => req('POST',   `/users/messages/${matchUserId}`,     { text });
 export const markRead          = (matchUserId)                => req('POST',   `/users/messages/${matchUserId}/read`);
 export const heartbeat         = ()                           => req('POST',   '/users/heartbeat');
+export const getOnlineUsers    = ()                           => req('GET',    '/users/online');
 export const getUserStatus     = (userId)                     => req('GET',    `/users/status/${userId}`);
 export const reportUser        = (userId, reason)             => req('POST',   `/users/report/${userId}`,            { reason });
 export const blockUser         = (userId)                     => req('POST',   `/users/block/${userId}`);
