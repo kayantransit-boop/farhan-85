@@ -401,16 +401,16 @@ function LandingScreen({ onLogin, onRegister }) {
           <div className="relative mx-auto w-52 h-72 mb-8">
             {/* Carte 3 — derrière */}
             <div className="absolute inset-0 rounded-3xl shadow-xl overflow-hidden rotate-6 opacity-80">
-              <img src="https://randomuser.me/api/portraits/men/52.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="https://randomuser.me/api/portraits/women/75.jpg" alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 text-white">
-                <p className="font-black text-sm">Omar, 28</p>
+                <p className="font-black text-sm">Safia, 29</p>
                 <p className="text-white/70 text-xs">📍 Djibouti</p>
               </div>
             </div>
             {/* Carte 2 — milieu */}
             <div className="absolute inset-0 rounded-3xl shadow-xl overflow-hidden -rotate-3 opacity-90">
-              <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 text-white">
                 <p className="font-black text-sm">Hodan, 27</p>
@@ -419,7 +419,7 @@ function LandingScreen({ onLogin, onRegister }) {
             </div>
             {/* Carte 1 — devant */}
             <div className="relative rounded-3xl shadow-2xl overflow-hidden h-full">
-              <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="https://randomuser.me/api/portraits/women/36.jpg" alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="flex items-end justify-between">
@@ -472,12 +472,12 @@ function LandingScreen({ onLogin, onRegister }) {
         <h2 className="text-2xl font-black text-gray-900 text-center mb-6">Trouve quelqu'un<br/>près de toi 📍</h2>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { photo: 'https://randomuser.me/api/portraits/women/44.jpg', name: 'Amina', age: 24, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/men/52.jpg',   name: 'Omar',  age: 28, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/65.jpg', name: 'Hodan', age: 27, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/men/71.jpg',   name: 'Abdi',  age: 32, city: 'Ali Sabieh' },
-            { photo: 'https://randomuser.me/api/portraits/women/26.jpg', name: 'Fadumo',age: 22, city: 'Tadjourah' },
-            { photo: 'https://randomuser.me/api/portraits/men/34.jpg',   name: 'Ismail',age: 25, city: 'Djibouti' },
+            { photo: 'https://randomuser.me/api/portraits/women/36.jpg', name: 'Amina',  age: 24, city: 'Djibouti' },
+            { photo: 'https://randomuser.me/api/portraits/women/32.jpg', name: 'Hodan',  age: 27, city: 'Djibouti' },
+            { photo: 'https://randomuser.me/api/portraits/women/75.jpg', name: 'Safia',  age: 29, city: 'Djibouti' },
+            { photo: 'https://randomuser.me/api/portraits/women/78.jpg', name: 'Fadumo', age: 22, city: 'Ali Sabieh' },
+            { photo: 'https://randomuser.me/api/portraits/women/90.jpg', name: 'Nasra',  age: 31, city: 'Tadjourah' },
+            { photo: 'https://randomuser.me/api/portraits/women/31.jpg', name: 'Ifrah',  age: 26, city: 'Djibouti' },
           ].map((p, i) => (
             <div key={i} className="relative rounded-2xl overflow-hidden aspect-square shadow-sm cursor-pointer" onClick={onRegister}>
               <img src={p.photo} alt={p.name} className="w-full h-full object-cover" />
