@@ -670,12 +670,14 @@ app.put('/api/profile', auth,
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
 
-    const { name, age, city, bio, tags, photos } = req.body;
+    const { name, age, city, bio, tags, photo, photos } = req.body;
     if (name !== undefined) user.name = sanitize(name, 50);
     if (age  !== undefined) user.age  = Math.min(100, Math.max(18, parseInt(age)));
     if (city !== undefined) user.city = sanitize(city, 100);
     if (bio  !== undefined) user.bio  = sanitize(bio, 500);
     if (Array.isArray(tags)) user.tags = tags.slice(0, 10).map(t => sanitize(String(t), 30));
+    if (photo !== undefined && typeof photo === 'string' && photo.startsWith('data:image/')) user.photo = photo;
+    if (photo === '') user.photo = '';
     if (Array.isArray(photos)) user.photos = photos.slice(0, 5).filter(p => typeof p === 'string' && p.startsWith('data:image/'));
     await user.save();
 
@@ -685,6 +687,7 @@ app.put('/api/profile', auth,
       city: user.city,
       bio: user.bio,
       tags: user.tags,
+      photo: user.photo,
       initials: user.name.slice(0, 2).toUpperCase(),
     });
 
