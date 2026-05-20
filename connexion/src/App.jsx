@@ -397,45 +397,10 @@ function LandingScreen({ onLogin, onRegister }) {
             Des rencontres authentiques, des connexions réelles.
           </p>
 
-          {/* Cartes de profils empilées */}
-          <div className="relative mx-auto w-52 h-72 mb-8">
-            {/* Carte 3 — derrière */}
-            <div className="absolute inset-0 rounded-3xl shadow-xl overflow-hidden rotate-6 opacity-80">
-              <img src="https://randomuser.me/api/portraits/women/46.jpg" alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-3 left-3 text-white">
-                <p className="font-black text-sm">Safia, 29</p>
-                <p className="text-white/70 text-xs">📍 Djibouti</p>
-              </div>
-            </div>
-            {/* Carte 2 — milieu */}
-            <div className="absolute inset-0 rounded-3xl shadow-xl overflow-hidden -rotate-3 opacity-90">
-              <img src="https://randomuser.me/api/portraits/women/29.jpg" alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-3 left-3 text-white">
-                <p className="font-black text-sm">Hodan, 27</p>
-                <p className="text-white/70 text-xs">📍 Djibouti</p>
-              </div>
-            </div>
-            {/* Carte 1 — devant */}
-            <div className="relative rounded-3xl shadow-2xl overflow-hidden h-full">
-              <img src="https://randomuser.me/api/portraits/women/48.jpg" alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4">
-                <div className="flex items-end justify-between">
-                  <div className="text-white">
-                    <p className="font-black text-lg leading-tight">Amina, 24</p>
-                    <p className="text-white/80 text-xs">📍 Djibouti-Ville</p>
-                  </div>
-                  <span className="flex items-center gap-1 text-[11px] text-green-300 font-bold bg-black/30 px-2 py-1 rounded-full">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />En ligne
-                  </span>
-                </div>
-              </div>
-              <div className="absolute top-4 right-3 bg-green-400 text-white font-black text-xs px-2.5 py-1 rounded-full rotate-12 shadow-lg border-2 border-white">
-                LIKE ❤️
-              </div>
-            </div>
+          {/* Icône hero */}
+          <div className="relative mx-auto w-52 h-52 mb-8 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-white/10 animate-pulse" />
+            <img src="/logo.svg" alt="Djibouti Rencontre" className="w-32 h-32 drop-shadow-2xl" />
           </div>
 
           <div className="flex flex-col gap-3">
@@ -464,37 +429,6 @@ function LandingScreen({ onLogin, onRegister }) {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* ── GRILLE PROFILS ── */}
-      <div className="px-6 py-10">
-        <p className="text-xs font-bold tracking-widest text-center mb-2" style={{ color: '#0089CF' }}>ILS SONT SUR L'APPLICATION</p>
-        <h2 className="text-2xl font-black text-gray-900 text-center mb-6">Trouve quelqu'un<br/>près de toi 📍</h2>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { photo: 'https://randomuser.me/api/portraits/women/48.jpg', name: 'Amina',  age: 24, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/29.jpg', name: 'Hodan',  age: 27, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/46.jpg', name: 'Safia',  age: 29, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/9.jpg',  name: 'Fadumo', age: 22, city: 'Ali Sabieh' },
-            { photo: 'https://randomuser.me/api/portraits/women/33.jpg', name: 'Nasra',  age: 31, city: 'Tadjourah' },
-            { photo: 'https://randomuser.me/api/portraits/women/5.jpg',  name: 'Ifrah',  age: 26, city: 'Djibouti' },
-          ].map((p, i) => (
-            <div key={i} className="relative rounded-2xl overflow-hidden aspect-square shadow-sm cursor-pointer" onClick={onRegister}>
-              <img src={p.photo} alt={p.name} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <div className="absolute bottom-2 left-2 right-2">
-                <p className="text-white font-bold text-xs leading-tight">{p.name}, {p.age}</p>
-                <p className="text-white/70 text-[10px]">📍 {p.city}</p>
-              </div>
-              <div className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full border border-white" />
-            </div>
-          ))}
-        </div>
-        <button onClick={onRegister}
-          className="w-full mt-5 py-3.5 rounded-2xl font-bold text-sm text-white"
-          style={{ background: 'linear-gradient(135deg, #0089CF, #12AD2B)' }}>
-          Voir tous les profils →
-        </button>
       </div>
 
       {/* ── COMMENT ÇA MARCHE ── */}
