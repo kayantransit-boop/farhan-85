@@ -1331,9 +1331,11 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
         <div className="absolute inset-x-0 bottom-0 translate-y-1/2 flex justify-center">
           <div className="relative">
             {(() => {
-              const mainPhoto = (editing ? draft.photo : user.photo) || (user.photos || [])[0] || '';
-              return mainPhoto
-                ? <img src={mainPhoto} alt={user.name} className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-xl" />
+              const src = editing
+                ? (draft.photo || (draft.photos || [])[0] || '')
+                : (user.photo  || (user.photos  || [])[0] || '');
+              return src
+                ? <img src={src} alt={user.name} className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-xl" />
                 : <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FD297B] to-[#FF655B] flex items-center justify-center text-3xl font-bold text-white ring-4 ring-white shadow-xl">
                     {user.name?.charAt(0).toUpperCase()}
                   </div>;
