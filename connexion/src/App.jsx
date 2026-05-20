@@ -401,7 +401,7 @@ function LandingScreen({ onLogin, onRegister }) {
           <div className="relative mx-auto w-52 h-72 mb-8">
             {/* Carte 3 — derrière */}
             <div className="absolute inset-0 rounded-3xl shadow-xl overflow-hidden rotate-6 opacity-80">
-              <img src="https://randomuser.me/api/portraits/women/75.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=500&fit=crop&crop=face" alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 text-white">
                 <p className="font-black text-sm">Safia, 29</p>
@@ -410,7 +410,7 @@ function LandingScreen({ onLogin, onRegister }) {
             </div>
             {/* Carte 2 — milieu */}
             <div className="absolute inset-0 rounded-3xl shadow-xl overflow-hidden -rotate-3 opacity-90">
-              <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?w=400&h=500&fit=crop&crop=face" alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 text-white">
                 <p className="font-black text-sm">Hodan, 27</p>
@@ -419,7 +419,7 @@ function LandingScreen({ onLogin, onRegister }) {
             </div>
             {/* Carte 1 — devant */}
             <div className="relative rounded-3xl shadow-2xl overflow-hidden h-full">
-              <img src="https://randomuser.me/api/portraits/women/36.jpg" alt="" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&h=500&fit=crop&crop=face" alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="flex items-end justify-between">
@@ -472,12 +472,12 @@ function LandingScreen({ onLogin, onRegister }) {
         <h2 className="text-2xl font-black text-gray-900 text-center mb-6">Trouve quelqu'un<br/>près de toi 📍</h2>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { photo: 'https://randomuser.me/api/portraits/women/36.jpg', name: 'Amina',  age: 24, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/32.jpg', name: 'Hodan',  age: 27, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/75.jpg', name: 'Safia',  age: 29, city: 'Djibouti' },
-            { photo: 'https://randomuser.me/api/portraits/women/78.jpg', name: 'Fadumo', age: 22, city: 'Ali Sabieh' },
-            { photo: 'https://randomuser.me/api/portraits/women/90.jpg', name: 'Nasra',  age: 31, city: 'Tadjourah' },
-            { photo: 'https://randomuser.me/api/portraits/women/31.jpg', name: 'Ifrah',  age: 26, city: 'Djibouti' },
+            { photo: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300&h=300&fit=crop&crop=face', name: 'Amina',  age: 24, city: 'Djibouti' },
+            { photo: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=300&fit=crop&crop=face', name: 'Hodan',  age: 27, city: 'Djibouti' },
+            { photo: 'https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?w=300&h=300&fit=crop&crop=face', name: 'Safia',  age: 29, city: 'Djibouti' },
+            { photo: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=300&h=300&fit=crop&crop=face', name: 'Fadumo', age: 22, city: 'Ali Sabieh' },
+            { photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=300&fit=crop&crop=face', name: 'Nasra',  age: 31, city: 'Tadjourah' },
+            { photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=300&fit=crop&crop=face', name: 'Ifrah',  age: 26, city: 'Djibouti' },
           ].map((p, i) => (
             <div key={i} className="relative rounded-2xl overflow-hidden aspect-square shadow-sm cursor-pointer" onClick={onRegister}>
               <img src={p.photo} alt={p.name} className="w-full h-full object-cover" />
