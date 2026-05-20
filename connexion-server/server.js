@@ -870,6 +870,18 @@ app.get('/api/admin/reports', adminAuth, async (req, res) => {
   res.json(reports.map(r => ({ ...r.toObject(), reporterName: userMap[r.reporterId] || '?', reportedName: userMap[r.reportedId] || '?' })));
 });
 
+// ─── STATS PUBLIQUES ──────────────────────────────────────────────────────────
+
+app.get('/api/stats', async (req, res) => {
+  const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
+  const [totalUsers, totalMatches, onlineNow] = await Promise.all([
+    User.countDocuments({ isBanned: false, isAdmin: false }),
+    UserMatch.countDocuments(),
+    User.countDocuments({ isBanned: false, isAdmin: false, lastSeen: { $gte: twoMinsAgo } }),
+  ]);
+  res.json({ totalUsers, totalMatches, onlineNow });
+});
+
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' }));

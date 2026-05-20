@@ -119,11 +119,32 @@ function InstallButton() {
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 function LandingScreen({ onLogin, onRegister }) {
-  const stats = [
-    { value: '12 400+', label: 'Membres actifs' },
-    { value: '3 200+', label: 'Matchs réalisés' },
-    { value: '98+', label: 'En ligne maintenant' },
-  ];
+  const [stats, setStats] = useState([
+    { value: '…', label: 'Membres actifs' },
+    { value: '…', label: 'Matchs réalisés' },
+    { value: '…', label: 'En ligne maintenant' },
+  ]);
+
+  useEffect(() => {
+    const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    const load = () => {
+      fetch(`${BASE}/stats`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return;
+          const fmt = n => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + ' k+' : String(n);
+          setStats([
+            { value: fmt(d.totalUsers),  label: 'Membres actifs' },
+            { value: fmt(d.totalMatches), label: 'Matchs réalisés' },
+            { value: String(d.onlineNow), label: 'En ligne maintenant' },
+          ]);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 30000); // rafraîchit toutes les 30s
+    return () => clearInterval(id);
+  }, []);
 
   const steps = [
     { num: '01', title: 'Crée ton profil', desc: 'Quelques secondes suffisent. Ajoute tes photos et une courte bio.' },
