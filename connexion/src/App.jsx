@@ -118,7 +118,200 @@ function InstallButton() {
 }
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
+function LegalPage({ page, onBack }) {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const isPrivacy = page === 'privacy';
+
+  return (
+    <div className="min-h-screen bg-white overflow-y-auto">
+      {/* Header */}
+      <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-4 border-b border-gray-100 bg-white/95 backdrop-blur">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <ChevronLeft className="w-5 h-5 text-gray-700" />
+        </button>
+        <div>
+          <p className="font-black text-gray-900 text-base">
+            {isPrivacy ? 'Politique de confidentialité' : "Conditions d'utilisation"}
+          </p>
+          <p className="text-gray-400 text-xs">Djibouti Rencontre — Dernière mise à jour : mai 2025</p>
+        </div>
+      </div>
+
+      <div className="px-6 py-8 max-w-2xl mx-auto space-y-8 text-gray-700 text-sm leading-relaxed">
+
+        {isPrivacy ? (
+          <>
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">1. Introduction</h2>
+              <p>Djibouti Rencontre (« nous », « notre ») exploite la plateforme accessible à l'adresse <strong>djib-rencontre.site</strong>. Nous nous engageons à protéger vos données personnelles. Cette politique explique quelles données nous collectons, comment nous les utilisons et quels sont vos droits.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">2. Données collectées</h2>
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Données d'inscription :</strong> nom, adresse e-mail, mot de passe (chiffré).</li>
+                <li><strong>Données de profil :</strong> âge, ville, photo, biographie, centres d'intérêt.</li>
+                <li><strong>Données d'utilisation :</strong> likes, matchs, messages échangés.</li>
+                <li><strong>Données techniques :</strong> adresse IP, horodatage de connexion, type d'appareil.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">3. Utilisation des données</h2>
+              <p>Vos données sont utilisées pour :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>Créer et gérer votre compte utilisateur.</li>
+                <li>Vous proposer des profils compatibles.</li>
+                <li>Permettre la messagerie entre membres matchés.</li>
+                <li>Assurer la sécurité de la plateforme et prévenir les abus.</li>
+                <li>Améliorer nos services via des analyses anonymisées.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">4. Partage des données</h2>
+              <p>Nous ne vendons jamais vos données personnelles à des tiers. Vos informations peuvent être partagées uniquement :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>Avec les autres membres (nom, âge, ville, photo, bio — visibles sur votre profil public).</li>
+                <li>Avec nos prestataires techniques (hébergement Vercel, base de données MongoDB Atlas) dans le cadre strict de la fourniture du service.</li>
+                <li>Si la loi djiboutienne ou une décision judiciaire l'exige.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">5. Conservation des données</h2>
+              <p>Vos données sont conservées tant que votre compte est actif. Si vous supprimez votre compte, vos données personnelles sont effacées dans un délai de 30 jours, à l'exception des données requises par des obligations légales.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">6. Sécurité</h2>
+              <p>Nous protégeons vos données par :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>Chiffrement HTTPS (TLS) pour toutes les communications.</li>
+                <li>Hachage des mots de passe (bcrypt).</li>
+                <li>Authentification par jeton JWT à durée limitée.</li>
+                <li>Limitation du nombre de tentatives de connexion.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">7. Cookies et publicités</h2>
+              <p>Notre site utilise des cookies essentiels au bon fonctionnement du service. Nous pouvons également afficher des publicités via <strong>Google AdSense</strong>, qui utilise des cookies pour personnaliser les annonces selon vos centres d'intérêt. Vous pouvez gérer vos préférences publicitaires sur <a href="https://adssettings.google.com" className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">adssettings.google.com</a>.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">8. Vos droits</h2>
+              <p>Vous avez le droit de :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>Accéder à vos données personnelles.</li>
+                <li>Corriger des informations inexactes.</li>
+                <li>Demander la suppression de votre compte et de vos données.</li>
+                <li>Vous opposer à certains traitements.</li>
+              </ul>
+              <p className="mt-2">Pour exercer ces droits, contactez-nous : <a href="mailto:contact@djib-rencontre.site" className="text-blue-600 underline">contact@djib-rencontre.site</a></p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">9. Contact</h2>
+              <p>Responsable du traitement : Djibouti Rencontre<br />
+              E-mail : <a href="mailto:contact@djib-rencontre.site" className="text-blue-600 underline">contact@djib-rencontre.site</a><br />
+              Site : <a href="https://djib-rencontre.site" className="text-blue-600 underline">djib-rencontre.site</a></p>
+            </section>
+          </>
+        ) : (
+          <>
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">1. Acceptation des conditions</h2>
+              <p>En créant un compte sur Djibouti Rencontre, vous acceptez sans réserve les présentes Conditions Générales d'Utilisation (CGU). Si vous n'acceptez pas ces conditions, vous ne pouvez pas utiliser le service.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">2. Accès au service</h2>
+              <p>Le service est accessible gratuitement à toute personne :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>Âgée d'au moins <strong>18 ans</strong>.</li>
+                <li>Disposant d'une adresse e-mail valide.</li>
+                <li>Résidant ou ayant des liens avec Djibouti.</li>
+              </ul>
+              <p className="mt-2">Tout compte appartenant à une personne mineure sera immédiatement supprimé.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">3. Règles de comportement</h2>
+              <p>En utilisant Djibouti Rencontre, vous vous engagez à :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>Fournir des informations sincères et exactes sur votre profil.</li>
+                <li>Utiliser votre vraie photo personnelle.</li>
+                <li>Respecter tous les membres sans discrimination, harcèlement ni insulte.</li>
+                <li>Ne pas partager de contenu à caractère sexuel explicite, violent ou illégal.</li>
+                <li>Ne pas usurper l'identité d'une autre personne.</li>
+                <li>Ne pas utiliser le service à des fins commerciales non autorisées.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">4. Messagerie</h2>
+              <p>La messagerie est réservée aux membres ayant matché mutuellement. Tout message à caractère harcelant, menaçant ou offensant peut entraîner la suspension immédiate du compte concerné.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">5. Signalements et modération</h2>
+              <p>Tout membre peut signaler un profil ou un message inapproprié. Notre équipe de modération examine chaque signalement et peut prendre les mesures suivantes : avertissement, suspension temporaire ou suppression définitive du compte.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">6. Propriété intellectuelle</h2>
+              <p>Le contenu de la plateforme (logo, design, code, textes) est la propriété exclusive de Djibouti Rencontre. Tout usage non autorisé est interdit. En publiant du contenu (photos, textes), vous accordez à Djibouti Rencontre une licence non exclusive d'utilisation pour le fonctionnement du service.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">7. Responsabilité</h2>
+              <p>Djibouti Rencontre met tout en œuvre pour assurer la sécurité et la disponibilité du service, mais ne peut garantir :</p>
+              <ul className="list-disc pl-5 space-y-2 mt-2">
+                <li>L'exactitude des informations fournies par les membres.</li>
+                <li>La compatibilité ou le succès des rencontres.</li>
+                <li>Une disponibilité ininterrompue du service.</li>
+              </ul>
+              <p className="mt-2">Djibouti Rencontre n'est pas responsable des interactions entre membres en dehors de la plateforme.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">8. Suppression de compte</h2>
+              <p>Vous pouvez supprimer votre compte à tout moment depuis les paramètres de l'application. Djibouti Rencontre se réserve le droit de supprimer tout compte ne respectant pas les présentes CGU, sans préavis.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">9. Modifications</h2>
+              <p>Ces CGU peuvent être mises à jour à tout moment. Les membres seront informés de toute modification importante. L'utilisation continue du service après notification vaut acceptation des nouvelles conditions.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">10. Droit applicable</h2>
+              <p>Les présentes CGU sont régies par le droit de la République de Djibouti. Tout litige sera soumis aux tribunaux compétents de Djibouti-Ville.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-gray-900 mb-3">11. Contact</h2>
+              <p>Pour toute question relative aux présentes CGU :<br />
+              E-mail : <a href="mailto:contact@djib-rencontre.site" className="text-blue-600 underline">contact@djib-rencontre.site</a></p>
+            </section>
+          </>
+        )}
+
+        <div className="pt-4 border-t border-gray-100">
+          <button onClick={onBack}
+            className="w-full py-3.5 font-bold text-white rounded-2xl text-sm"
+            style={{ background: 'linear-gradient(135deg, #0089CF, #12AD2B)' }}>
+            ← Retour
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LandingScreen({ onLogin, onRegister }) {
+  const [legalPage, setLegalPage] = useState(null);
   const [stats, setStats] = useState([
     { value: '…', label: 'Membres actifs' },
     { value: '…', label: 'Matchs réalisés' },
@@ -164,6 +357,8 @@ function LandingScreen({ onLogin, onRegister }) {
     { name: 'Omar H.', city: 'Ali Sabieh', text: 'Super application, très facile à utiliser. J\'apprécie beaucoup le chat en temps réel.', color: 'from-blue-400 to-cyan-500', rating: 5 },
     { name: 'Hodan M.', city: 'Tadjoura', text: 'Enfin une appli de rencontre faite pour nous. Je recommande à tous !', color: 'from-violet-400 to-purple-600', rating: 5 },
   ];
+
+  if (legalPage) return <LegalPage page={legalPage} onBack={() => setLegalPage(null)} />;
 
   return (
     <div className="min-h-screen bg-white overflow-y-auto">
@@ -341,9 +536,9 @@ function LandingScreen({ onLogin, onRegister }) {
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-500 border-t border-gray-800 pt-4">
           <span>© 2025 Djibouti Rencontre</span>
-          <span className="cursor-pointer hover:text-gray-300">Confidentialité</span>
-          <span className="cursor-pointer hover:text-gray-300">Conditions d'utilisation</span>
-          <span className="cursor-pointer hover:text-gray-300">Contact</span>
+          <button onClick={() => setLegalPage('privacy')} className="cursor-pointer hover:text-gray-300 bg-transparent border-0 p-0 text-xs text-gray-500">Confidentialité</button>
+          <button onClick={() => setLegalPage('terms')} className="cursor-pointer hover:text-gray-300 bg-transparent border-0 p-0 text-xs text-gray-500">Conditions d'utilisation</button>
+          <a href="mailto:contact@djib-rencontre.site" className="hover:text-gray-300">Contact</a>
         </div>
         <div className="mt-4 pt-3 border-t border-gray-800 text-center">
           <span className="text-[11px] text-gray-600 tracking-widest uppercase">Conçu &amp; développé par </span>
