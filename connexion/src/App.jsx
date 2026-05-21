@@ -617,7 +617,7 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Camera className="w-6 h-6 text-white" />
                     </div>
-                    <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+                    <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handlePhoto} className="hidden" />
                   </label>
                   <p className="text-[10px] text-gray-400">Appuyez pour ajouter une photo</p>
                 </div>
@@ -1303,7 +1303,7 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
             {editing && (
               <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white cursor-pointer">
                 <Camera className="w-4 h-4 text-white" />
-                <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handlePhoto} className="hidden" />
               </label>
             )}
           </div>
@@ -1401,7 +1401,7 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
               ))}
               {(draft.photos || []).length < 5 && (
                 <>
-                  <input ref={photoRef} type="file" accept="image/*" onChange={handleAddPhoto} className="hidden" />
+                  <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAddPhoto} className="hidden" />
                   <button type="button" onClick={() => photoRef.current.click()}
                     className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#0089CF] transition-colors">
                     <Camera className="w-5 h-5 text-gray-400" />
