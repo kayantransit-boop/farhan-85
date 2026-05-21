@@ -67,6 +67,21 @@ function LoadingScreen() {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
+// Ouvre le sélecteur de fichiers de manière programmatique (contourne le bug caméra PWA Android)
+function openImagePicker(callback) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/gif,image/webp';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) callback(file);
+    document.body.removeChild(input);
+  };
+  input.click();
+}
+
 // Redimensionne et compresse une image côté client (max 320px, qualité 0.75)
 function resizeImage(file, maxSize = 320, quality = 0.75) {
   return new Promise((resolve) => {
@@ -538,16 +553,8 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const photoRef = useRef();
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-
-  const handlePhoto = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const base64 = await resizeImage(file);
-    setPhoto(base64);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -606,7 +613,8 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
               <>
                 {/* Photo de profil */}
                 <div className="flex flex-col items-center gap-2 py-2">
-                  <label className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-dashed border-gray-200 hover:border-[#FD297B] transition-colors group cursor-pointer">
+                  <button type="button" onClick={() => openImagePicker(async f => { const b = await resizeImage(f); setPhoto(b); })}
+                    className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-dashed border-gray-200 hover:border-[#FD297B] transition-colors group cursor-pointer">
                     {photo
                       ? <img src={photo} alt="photo" className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-1">
@@ -617,8 +625,7 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Camera className="w-6 h-6 text-white" />
                     </div>
-                    <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handlePhoto} className="hidden" />
-                  </label>
+                  </button>
                   <p className="text-[10px] text-gray-400">Appuyez pour ajouter une photo</p>
                 </div>
 
@@ -1250,27 +1257,12 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(user);
   const [saving, setSaving] = useState(false);
-  const photoRef = useRef();
-
-  const handleAddPhoto = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const base64 = await resizeImage(file, 480, 0.8);
-    setDraft(d => ({ ...d, photos: [...(d.photos || []), base64].slice(0, 5) }));
-  };
-  const removePhoto = (idx) => setDraft(d => ({ ...d, photos: (d.photos || []).filter((_, i) => i !== idx) }));
   const [error, setError] = useState('');
+  const removePhoto = (idx) => setDraft(d => ({ ...d, photos: (d.photos || []).filter((_, i) => i !== idx) }));
 
   useEffect(() => { setDraft(user); }, [user]);
 
   const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.value }));
-
-  const handlePhoto = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const base64 = await resizeImage(file);
-    setDraft(d => ({ ...d, photo: base64 }));
-  };
 
   const save = async () => {
     setSaving(true); setError('');
@@ -1301,10 +1293,10 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
                   </div>;
             })()}
             {editing && (
-              <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white cursor-pointer">
+              <button type="button" onClick={() => openImagePicker(async f => { const b = await resizeImage(f); setDraft(d => ({ ...d, photo: b })); })}
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white cursor-pointer">
                 <Camera className="w-4 h-4 text-white" />
-                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handlePhoto} className="hidden" />
-              </label>
+              </button>
             )}
           </div>
         </div>
@@ -1400,13 +1392,10 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
                 </div>
               ))}
               {(draft.photos || []).length < 5 && (
-                <>
-                  <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAddPhoto} className="hidden" />
-                  <button type="button" onClick={() => photoRef.current.click()}
-                    className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#0089CF] transition-colors">
-                    <Camera className="w-5 h-5 text-gray-400" />
-                  </button>
-                </>
+                <button type="button" onClick={() => openImagePicker(async f => { const b = await resizeImage(f, 480, 0.8); setDraft(d => ({ ...d, photos: [...(d.photos || []), b].slice(0, 5) })); })}
+                  className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#0089CF] transition-colors">
+                  <Camera className="w-5 h-5 text-gray-400" />
+                </button>
               )}
             </div>
           </div>
