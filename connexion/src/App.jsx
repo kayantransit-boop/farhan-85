@@ -617,7 +617,7 @@ function AuthScreen({ onLogin, initialMode = 'login' }) {
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Camera className="w-6 h-6 text-white" />
                     </div>
-                    <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+                    <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
                   </label>
                   <p className="text-[10px] text-gray-400">Appuyez pour ajouter une photo</p>
                 </div>
@@ -989,10 +989,9 @@ function MatchCard({ name, photo, initials, color, city, age, online, badge, onC
   );
 }
 
-function MatchesScreen({ matches, userMatches, onlineUsers, onChat, onChatDirect, loading, onReport, onBlock }) {
+function MatchesScreen({ userMatches, onlineUsers, onChat, onChatDirect, loading, onReport, onBlock }) {
   const [viewingProfile, setViewingProfile] = useState(null);
-  const total = matches.length + userMatches.length;
-  // Utilisateurs en ligne qui ne sont pas déjà dans les matchs
+  const total = userMatches.length;
   const matchedIds = new Set(userMatches.map(m => m.matchUserId));
   const newOnline = (onlineUsers || []).filter(u => !matchedIds.has(u.id));
 
@@ -1058,12 +1057,6 @@ function MatchesScreen({ matches, userMatches, onlineUsers, onChat, onChatDirect
                 onClick={() => onChat(m)}
                 onProfile={() => setViewingProfile({ ...m, chatData: m })} />
             ))}
-            {matches.map(m => (
-              <MatchCard key={`p_${m.id}`} name={m.profile?.name} photo={m.profile?.photo}
-                initials={m.profile?.initials} color={m.profile?.color}
-                city={m.profile?.city} age={m.profile?.age}
-                onClick={() => onChat(m)} />
-            ))}
           </div>
         )}
       </div>
@@ -1079,25 +1072,19 @@ function MatchesScreen({ matches, userMatches, onlineUsers, onChat, onChatDirect
 }
 
 // ─── MESSAGES ─────────────────────────────────────────────────────────────────
-function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, activeConvType, setActiveConv, newMsg, setNewMsg, onSend, onOpen, loadingConv, endRef }) {
+function MessagesScreen({ userMatches, onlineUsers, convs, activeConv, setActiveConv, newMsg, setNewMsg, onSend, onOpen, loadingConv, endRef }) {
   if (activeConv) {
-    const key = `${activeConvType === 'user' ? 'u' : 'p'}_${activeConv}`;
+    const key = `u_${activeConv}`;
     const messages = convs[key] || [];
-    let name, photo, initials, color, online = false, isUser = activeConvType === 'user';
-    if (isUser) {
-      const um = userMatches.find(m => m.matchUserId === activeConv);
-      const ou = (onlineUsers || []).find(u => u.id === activeConv);
-      name = um?.name || ou?.name; photo = um?.photo || ou?.photo;
-      initials = um?.initials || ou?.initials; color = um?.color || ou?.color;
-      online = !!(um?.online || ou);
-    } else {
-      const pm = matches.find(m => m.profileId === activeConv);
-      name = pm?.profile?.name; photo = pm?.profile?.photo;
-      initials = pm?.profile?.initials; color = pm?.profile?.color;
-    }
+    const um = userMatches.find(m => m.matchUserId === activeConv);
+    const ou = (onlineUsers || []).find(u => u.id === activeConv);
+    const name = um?.name || ou?.name;
+    const photo = um?.photo || ou?.photo;
+    const initials = um?.initials || ou?.initials;
+    const color = um?.color || ou?.color;
+    const online = !!(um?.online || ou);
 
     const [chatProfileOpen, setChatProfileOpen] = useState(false);
-    const um = isUser ? userMatches.find(m => m.matchUserId === activeConv) : null;
 
     return (
       <div className="flex flex-col h-full bg-white">
@@ -1105,26 +1092,22 @@ function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, 
           <button onClick={() => setActiveConv(null)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <button onClick={() => isUser && setChatProfileOpen(true)} className={isUser ? 'cursor-pointer' : 'cursor-default'}>
-            <Avatar photo={photo} initials={initials} color={color} size={10} online={isUser && online} />
+          <button onClick={() => setChatProfileOpen(true)}>
+            <Avatar photo={photo} initials={initials} color={color} size={10} online={online} />
           </button>
-          <button onClick={() => isUser && setChatProfileOpen(true)} className={`flex-1 text-left ${isUser ? 'cursor-pointer' : 'cursor-default'}`}>
+          <button onClick={() => setChatProfileOpen(true)} className="flex-1 text-left cursor-pointer">
             <p className="text-gray-900 font-bold leading-tight">{name}</p>
-            {isUser && online && (
+            {online ? (
               <p className="text-xs font-medium text-green-500">● En ligne maintenant</p>
-            )}
-            {isUser && !online && (
+            ) : (
               <div className="flex items-center gap-1 mt-0.5">
                 <Mail className="w-3 h-3 text-[#0089CF]" />
                 <span className="text-xs font-medium text-[#0089CF]">Hors ligne · il verra votre message</span>
               </div>
             )}
-            {!isUser && (
-              <p className="text-xs font-medium text-gray-400">Profil</p>
-            )}
           </button>
         </div>
-        {isUser && chatProfileOpen && (
+        {chatProfileOpen && (
           <ProfileModal
             profile={um}
             onClose={() => setChatProfileOpen(false)}
@@ -1132,7 +1115,7 @@ function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, 
           />
         )}
 
-        {isUser && !online && (
+        {!online && (
           <div className="bg-[#E8F4FB] border-b border-[#BEE0F5] px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <div className="w-9 h-9 rounded-full bg-[#0089CF]/15 flex items-center justify-center flex-shrink-0">
               <Mail className="w-4 h-4 text-[#0089CF]" />
@@ -1185,10 +1168,7 @@ function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, 
     );
   }
 
-  const allConvs = [
-    ...userMatches.map(m => ({ ...m, convKey: `u_${m.matchUserId}`, isUser: true, name: m.name, photo: m.photo, initials: m.initials, color: m.color, convId: m.matchUserId })),
-    ...matches.map(m => ({ ...m, convKey: `p_${m.profileId}`, isUser: false, name: m.profile?.name, photo: m.profile?.photo, initials: m.profile?.initials, color: m.profile?.color, convId: m.profileId })),
-  ];
+  const allConvs = userMatches.map(m => ({ ...m, convKey: `u_${m.matchUserId}`, name: m.name, photo: m.photo, initials: m.initials, color: m.color, convId: m.matchUserId }));
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -1207,19 +1187,19 @@ function MessagesScreen({ matches, userMatches, onlineUsers, convs, activeConv, 
             const msgs = convs[m.convKey] || [];
             const last = msgs[msgs.length - 1];
             return (
-              <button key={m.convKey} onClick={() => { setActiveConv(m.convId, m.isUser ? 'user' : 'profile'); onOpen(m.convId, m.isUser ? 'user' : 'profile'); }}
+              <button key={m.convKey} onClick={() => { setActiveConv(m.convId); onOpen(m.convId); }}
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-                <Avatar photo={m.photo} initials={m.initials} color={m.color} size={14} online={m.isUser && m.online} />
+                <Avatar photo={m.photo} initials={m.initials} color={m.color} size={14} online={m.online} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-gray-900 font-bold truncate">{m.name}</span>
-                    {m.isUser && m.online && <span className="text-[9px] text-green-500 font-bold flex-shrink-0">● En ligne</span>}
-                    {m.isUser && !m.online && <span className="text-[9px] text-gray-400 font-bold flex-shrink-0">Hors ligne</span>}
+                    {m.online ? <span className="text-[9px] text-green-500 font-bold flex-shrink-0">● En ligne</span>
+                              : <span className="text-[9px] text-gray-400 font-bold flex-shrink-0">Hors ligne</span>}
                   </div>
                   <p className="text-gray-400 text-sm truncate mt-0.5">
                     {last ? (last.from === 'me' ? 'Vous : ' : '') + last.text : 'Nouveau match ! 🎉'}
                   </p>
-                  {m.isUser && !m.online && (
+                  {!m.online && (
                     <div className="flex items-center gap-1 mt-0.5">
                       <Mail className="w-3 h-3 text-[#0089CF]" />
                       <span className="text-[10px] text-[#0089CF] font-medium">Écrire · il répondra à sa reconnexion</span>
@@ -1323,7 +1303,7 @@ function ProfileScreen({ user, setUser, onLogout, onAdmin, darkMode, setDarkMode
             {editing && (
               <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#FD297B] flex items-center justify-center shadow-lg border-2 border-white cursor-pointer">
                 <Camera className="w-4 h-4 text-white" />
-                <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+                <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
               </label>
             )}
           </div>
@@ -1533,13 +1513,11 @@ export default function App() {
   const [dragStart, setDragStart]         = useState({ x: 0, y: 0 });
   const [showMatch, setShowMatch]         = useState(null);
 
-  const [matches, setMatches]             = useState([]);
   const [userMatches, setUserMatches]     = useState([]);
   const [onlineUsers, setOnlineUsers]     = useState([]);
   const [loadingMatches, setLoadingM]     = useState(false);
   const [convs, setConvs]                 = useState({});
   const [activeConv, setActiveConv]       = useState(null);
-  const [activeConvType, setActiveConvType] = useState('profile');
   const [newMsg, setNewMsg]               = useState('');
   const [loadingConv, setLoadingConv]     = useState(false);
   const [unreadCount, setUnreadCount]     = useState(0);
@@ -1607,6 +1585,8 @@ export default function App() {
       loadMatches();
   }, [appState, activeTab]);
 
+
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [convs, activeConv]);
 
   useEffect(() => {
@@ -1618,14 +1598,14 @@ export default function App() {
     return () => clearTimeout(t);
   }, [swipeAnim]);
 
-  // Polling messages pour les convs user-to-user (silencieux = sans spinner)
+  // Polling messages (silencieux = sans spinner)
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
-    if (activeConv && activeConvType === 'user') {
-      pollRef.current = setInterval(() => loadConv(activeConv, 'user', true), 3000);
+    if (activeConv) {
+      pollRef.current = setInterval(() => loadConv(activeConv, true), 3000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [activeConv, activeConvType]);
+  }, [activeConv]);
 
   // Polling utilisateurs en ligne toutes les 15s
   useEffect(() => {
@@ -1646,12 +1626,12 @@ export default function App() {
     if (appState === 'main') api.getSwipeRemaining().then(r => setSwipeRemaining(r.remaining)).catch(() => {});
   }, [appState]);
 
-  // Mark as read quand on ouvre une conv user
+  // Mark as read quand on ouvre une conv
   useEffect(() => {
-    if (activeConv && activeConvType === 'user') {
+    if (activeConv) {
       api.markRead(activeConv).catch(() => {});
     }
-  }, [activeConv, activeConvType]);
+  }, [activeConv]);
 
   // Heartbeat toutes les 30 secondes
   useEffect(() => {
@@ -1671,12 +1651,8 @@ export default function App() {
   const loadProfiles = async (f = filters) => {
     setLoadingP(true);
     try {
-      const [profileData, userData] = await Promise.all([
-        api.getProfiles(),
-        api.discoverUsers(f).catch(() => []),
-      ]);
-      const mixed = [...profileData, ...userData].sort(() => Math.random() - 0.5);
-      setProfiles(mixed);
+      const users = await api.discoverUsers(f).catch(() => []);
+      setProfiles(users);
     }
     catch (e) { console.error(e); }
     finally { setLoadingP(false); }
@@ -1685,11 +1661,7 @@ export default function App() {
   const loadMatches = async () => {
     setLoadingM(true);
     try {
-      const [profileMatches, uMatches] = await Promise.all([
-        api.getMatches(),
-        api.getUserMatches().catch(() => []),
-      ]);
-      setMatches(profileMatches);
+      const uMatches = await api.getUserMatches().catch(() => []);
       setUserMatches(uMatches);
     } catch (e) { console.error(e); }
     finally { setLoadingM(false); }
@@ -1697,16 +1669,13 @@ export default function App() {
 
   const myId = user?._id || user?.id;
 
-  const loadConv = async (convId, type = 'profile', silent = false) => {
+  const loadConv = async (convId, silent = false) => {
     if (!silent) setLoadingConv(true);
     try {
-      const key = `${type === 'user' ? 'u' : 'p'}_${convId}`;
-      const msgs = type === 'user'
-        ? await api.getUserMessages(convId)
-        : await api.getMessages(convId);
+      const key = `u_${convId}`;
+      const msgs = await api.getUserMessages(convId);
       const mapped = msgs.map(m => ({ ...m, from: m.from === myId ? 'me' : 'them' }));
 
-      // Détecter les nouveaux messages de l'autre personne
       if (silent) {
         const prevCount = seenRef.current[key] ?? mapped.length;
         const newOnes = mapped.slice(prevCount).filter(m => m.from === 'them');
@@ -1715,7 +1684,6 @@ export default function App() {
           const sender = match?.name || 'Nouveau message';
           const initials = match?.initials || '??';
           newOnes.forEach(m => notify(sender, initials, m.text));
-          // Badge non-lu si l'onglet Messages n'est pas actif
           setUnreadCount(prev => prev + newOnes.length);
         }
         seenRef.current[key] = mapped.length;
@@ -1737,9 +1705,7 @@ export default function App() {
     else setSwipeAnim('left');
 
     try {
-      const result = profile.isUser
-        ? await api.swipeUser(profile.id, action)
-        : await api.swipe(profile.id, action);
+      const result = await api.swipeUser(profile.id, action);
       if (result.isMatch) {
         setTimeout(async () => { setShowMatch(profile); await loadMatches(); }, 500);
       }
@@ -1773,28 +1739,17 @@ export default function App() {
   const sendMessage = async () => {
     const text = newMsg.trim();
     if (!text || !activeConv) return;
-    const key = `${activeConvType === 'user' ? 'u' : 'p'}_${activeConv}`;
+    const key = `u_${activeConv}`;
     setNewMsg('');
     setConvs(prev => ({ ...prev, [key]: [...(prev[key] || []), { _id: Date.now(), from: 'me', text }] }));
     try {
-      if (activeConvType === 'user') {
-        await api.sendUserMessage(activeConv, text);
-      } else {
-        await api.sendMessage(activeConv, text);
-        const replies = ["C'est super ! 😊", "Vraiment ? Raconte-moi !", "Haha j'adore ! 💜", "Tu es trop sympa !", "On devrait se rencontrer 🌟"];
-        setTimeout(() => {
-          setConvs(prev => ({
-            ...prev,
-            [key]: [...(prev[key] || []), { _id: Date.now() + 1, from: 'them', text: replies[Math.floor(Math.random() * replies.length)] }],
-          }));
-        }, 1500);
-      }
+      await api.sendUserMessage(activeConv, text);
     } catch (e) { console.error(e); }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    setUser(null); setProfiles([]); setMatches([]); setUserMatches([]); setConvs({});
+    setUser(null); setProfiles([]); setUserMatches([]); setConvs({});
     setAppState('auth');
   };
 
@@ -1820,12 +1775,10 @@ export default function App() {
           <MatchModal
             match={showMatch}
             onMessage={() => {
-              const type = showMatch.isUser ? 'user' : 'profile';
               setShowMatch(null);
               setActiveConv(showMatch.id);
-              setActiveConvType(type);
               setActiveTab('messages');
-              loadConv(showMatch.id, type);
+              loadConv(showMatch.id);
             }}
             onContinue={() => setShowMatch(null)}
           />
@@ -1843,32 +1796,27 @@ export default function App() {
           )}
           {activeTab === 'matches' && (
             <MatchesScreen
-              matches={matches} userMatches={userMatches} onlineUsers={onlineUsers} loading={loadingMatches}
+              userMatches={userMatches} onlineUsers={onlineUsers} loading={loadingMatches}
               onReport={id => api.reportUser(id, '').catch(() => {})}
               onBlock={id => api.blockUser(id).then(() => { loadMatches(); setProfiles(p => p.filter(u => u.id !== id)); }).catch(() => {})}
               onChat={m => {
-                if (m.matchUserId) {
-                  setActiveConv(m.matchUserId); setActiveConvType('user');
-                  setActiveTab('messages'); loadConv(m.matchUserId, 'user');
-                } else {
-                  setActiveConv(m.profileId); setActiveConvType('profile');
-                  setActiveTab('messages'); loadConv(m.profileId, 'profile');
-                }
+                setActiveConv(m.matchUserId);
+                setActiveTab('messages'); loadConv(m.matchUserId);
               }}
               onChatDirect={u => {
-                setActiveConv(u.id); setActiveConvType('user');
-                setActiveTab('messages'); loadConv(u.id, 'user');
+                setActiveConv(u.id);
+                setActiveTab('messages'); loadConv(u.id);
               }}
             />
           )}
           {activeTab === 'messages' && (
             <MessagesScreen
-              matches={matches} userMatches={userMatches} onlineUsers={onlineUsers} convs={convs}
-              activeConv={activeConv} activeConvType={activeConvType}
-              setActiveConv={(id, type) => { setActiveConv(id); setActiveConvType(type || 'profile'); }}
+              userMatches={userMatches} onlineUsers={onlineUsers} convs={convs}
+              activeConv={activeConv}
+              setActiveConv={id => setActiveConv(id)}
               newMsg={newMsg} setNewMsg={setNewMsg}
               onSend={sendMessage}
-              onOpen={(id, type) => loadConv(id, type)}
+              onOpen={id => loadConv(id)}
               loadingConv={loadingConv} endRef={endRef}
             />
           )}
@@ -1884,7 +1832,7 @@ export default function App() {
             if (tab !== 'messages') setActiveConv(null);
             if (tab === 'messages') setUnreadCount(0);
           }}
-          matchCount={matches.length}
+          matchCount={userMatches.length}
           unreadCount={unreadCount}
         />
       </div>

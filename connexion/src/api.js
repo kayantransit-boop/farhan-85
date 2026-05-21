@@ -25,12 +25,6 @@ export const getMe             = ()                           => req('GET',    '
 export const forgotPassword    = (email)                      => req('POST',   '/auth/forgot-password',              { email });
 export const resetPassword     = (token, password)            => req('POST',   '/auth/reset-password',               { token, password });
 
-export const getProfiles       = ()                           => req('GET',    '/profiles');
-export const swipe             = (profileId, action)          => req('POST',   '/profiles/swipe',                    { profileId, action });
-export const getMatches        = ()                           => req('GET',    '/matches');
-export const getMessages       = (profileId)                  => req('GET',    `/messages/${profileId}`);
-export const sendMessage       = (profileId, text)            => req('POST',   `/messages/${profileId}`,             { text });
-
 export const updateProfile     = (data)                       => req('PUT',    '/profile',                           data);
 export const discoverUsers     = (filters = {})               => req('GET',    `/users/discover${toQuery(filters)}`);
 export const swipeUser         = (targetId, action)           => req('POST',   `/users/swipe/${targetId}`,           { action });

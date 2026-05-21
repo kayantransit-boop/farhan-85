@@ -39,35 +39,6 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
 }, { timestamps: true });
 
-const profileSchema = new mongoose.Schema({
-  _id: String,
-  name: String,
-  age: Number,
-  city: String,
-  bio: { type: String, default: '' },
-  tags: { type: [String], default: [] },
-  initials: String,
-  color: String,
-  compatibility: Number,
-  photo: { type: String, default: '' },
-});
-
-const swipeSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
-  profileId: { type: String, required: true },
-  action: { type: String, enum: ['like', 'pass', 'superlike'] },
-  date: { type: Date, default: Date.now },
-});
-swipeSchema.index({ userId: 1, profileId: 1 }, { unique: true });
-
-const matchSchema = new mongoose.Schema({
-  _id: String,
-  userId: { type: String, required: true },
-  profileId: { type: String, required: true },
-  superliked: { type: Boolean, default: false },
-  date: { type: Date, default: Date.now },
-});
-
 const messageSchema = new mongoose.Schema({
   _id: String,
   convId: { type: String, required: true, index: true },
@@ -116,9 +87,6 @@ const passwordResetSchema = new mongoose.Schema({
 });
 
 const User          = mongoose.model('User',          userSchema);
-const Profile       = mongoose.model('Profile',       profileSchema);
-const Swipe         = mongoose.model('Swipe',         swipeSchema);
-const Match         = mongoose.model('Match',         matchSchema);
 const Message       = mongoose.model('Message',       messageSchema);
 const UserSwipe     = mongoose.model('UserSwipe',     userSwipeSchema);
 const UserMatch     = mongoose.model('UserMatch',     userMatchSchema);
@@ -203,23 +171,6 @@ async function initData() {
     console.log('\n👑 Compte admin créé : admin@djibouti-rencontre.dj');
   }
 
-  const profileCount = await Profile.countDocuments();
-  if (profileCount === 0) {
-    const SEED = [
-      { _id: 'profile-1',  name: 'Amina',   age: 24, city: 'Djibouti',    bio: 'Passionnée de voyages et de photographie. Je cherche quelqu\'un pour explorer le monde ensemble 🌍', tags: ['Voyage','Photo','Yoga','Cuisine'],            initials: 'AM', color: 'from-pink-400 to-purple-500',   compatibility: 87 },
-      { _id: 'profile-2',  name: 'Lucas',   age: 28, city: 'Djibouti',    bio: 'Musicien le week-end, développeur la semaine. Fan de jazz et de bonne bouffe 🎸',                    tags: ['Musique','Cuisine','Tech','Cinéma'],          initials: 'LC', color: 'from-blue-400 to-cyan-500',     compatibility: 72 },
-      { _id: 'profile-3',  name: 'Sofia',   age: 22, city: 'Djibouti',    bio: 'Étudiante en architecture, je vois le monde comme une œuvre d\'art à construire ✨',                  tags: ['Art','Voyage','Sport','Architecture'],        initials: 'SF', color: 'from-orange-400 to-red-500',    compatibility: 91 },
-      { _id: 'profile-4',  name: 'Théo',    age: 31, city: 'Djibouti',    bio: 'Amateur de vin et de randonnée. Je cherche quelqu\'un pour partager de belles aventures 🍷',          tags: ['Randonnée','Nature','Sport','Cuisine'],       initials: 'TH', color: 'from-green-400 to-teal-500',    compatibility: 65 },
-      { _id: 'profile-5',  name: 'Léa',     age: 26, city: 'Djibouti',    bio: 'Passionnée et grande voyageuse. J\'adore les animaux et les couchers de soleil 🐾',                  tags: ['Animaux','Voyage','Sport','Musique'],         initials: 'LA', color: 'from-yellow-400 to-orange-500', compatibility: 83 },
-      { _id: 'profile-6',  name: 'Karim',   age: 29, city: 'Djibouti',    bio: 'Chef cuisinier qui aime partager sa passion. La vie est trop courte pour manger mal 👨‍🍳',             tags: ['Cuisine','Voyage','Cinéma','Sport'],          initials: 'KR', color: 'from-purple-400 to-pink-500',   compatibility: 78 },
-      { _id: 'profile-7',  name: 'Marie',   age: 25, city: 'Djibouti',    bio: 'Professeure de yoga et de méditation. À la recherche d\'une connexion authentique 🧘',               tags: ['Yoga','Nature','Lecture','Voyage'],           initials: 'MR', color: 'from-indigo-400 to-blue-500',   compatibility: 89 },
-      { _id: 'profile-8',  name: 'Antoine', age: 33, city: 'Djibouti',    bio: 'Architecte le jour, photographe la nuit. Je cherche quelqu\'un qui voit la beauté partout 📷',      tags: ['Photo','Architecture','Art','Cinéma'],        initials: 'AT', color: 'from-red-400 to-pink-500',     compatibility: 70 },
-      { _id: 'profile-9',  name: 'Yasmine', age: 23, city: 'Djibouti',    bio: 'Danseuse professionnelle. La vie est une danse, trouvons le rythme ensemble 💃',                     tags: ['Danse','Musique','Voyage','Mode'],            initials: 'YS', color: 'from-pink-500 to-rose-400',    compatibility: 94 },
-      { _id: 'profile-10', name: 'Romain',  age: 27, city: 'Djibouti',    bio: 'Entrepreneur passionné par l\'avenir de notre planète 🌱',                                           tags: ['Écologie','Sport','Tech','Cuisine'],          initials: 'RM', color: 'from-emerald-400 to-green-500', compatibility: 76 },
-    ];
-    await Profile.insertMany(SEED);
-    console.log('✅ 10 profils de départ créés');
-  }
 }
 
 // ─── DB CONNECTION MIDDLEWARE (serverless cache) ───────────────────────────────
@@ -355,95 +306,6 @@ app.get('/api/auth/me', auth, async (req, res) => {
   const { password, ...safeUser } = user.toObject();
   res.json({ ...safeUser, id: user._id });
 });
-
-// ─── PROFILES ─────────────────────────────────────────────────────────────────
-
-app.get('/api/profiles', auth, async (req, res) => {
-  const swiped = await Swipe.find({ userId: req.user.userId }).select('profileId');
-  const swipedIds = swiped.map(s => s.profileId);
-  swipedIds.push(req.user.userId);
-  // Exclure les profils automatiquement créés pour les vrais utilisateurs
-  const userIds = await User.find({}).distinct('_id');
-  const excluded = [...new Set([...swipedIds, ...userIds])];
-  const profiles = await Profile.find({ _id: { $nin: excluded } });
-  res.json(profiles);
-});
-
-app.post('/api/profiles/swipe', auth,
-  body('profileId').notEmpty().trim(),
-  body('action').isIn(['like', 'pass', 'superlike']),
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ error: 'Données invalides' });
-
-    const { profileId, action } = req.body;
-    try {
-      await Swipe.create({ userId: req.user.userId, profileId, action });
-    } catch (e) {
-      if (e.code === 11000) return res.status(409).json({ error: 'Déjà swipé' });
-      throw e;
-    }
-
-    let isMatch = false;
-    if (action === 'like' || action === 'superlike') {
-      isMatch = Math.random() < 0.4;
-      if (isMatch) {
-        await Match.create({ _id: uuidv4(), userId: req.user.userId, profileId, superliked: action === 'superlike' });
-        const convId = [req.user.userId, profileId].sort().join('_');
-        const existing = await Message.findOne({ convId });
-        if (!existing) {
-          await Message.create({ _id: uuidv4(), convId, from: profileId, text: 'Salut ! Ravi(e) qu\'on soit en match 😊' });
-        }
-      }
-    }
-
-    res.json({ isMatch });
-  }
-);
-
-// ─── MATCHES ──────────────────────────────────────────────────────────────────
-
-app.get('/api/matches', auth, async (req, res) => {
-  const matches = await Match.find({ userId: req.user.userId });
-  const profileIds = matches.map(m => m.profileId);
-  const profiles = await Profile.find({ _id: { $in: profileIds } });
-  const profileMap = Object.fromEntries(profiles.map(p => [p._id, p.toObject()]));
-  res.json(
-    matches
-      .map(m => ({ ...m.toObject(), profile: profileMap[m.profileId] || null }))
-      .filter(m => m.profile)
-  );
-});
-
-// ─── MESSAGES ─────────────────────────────────────────────────────────────────
-
-app.get('/api/messages/:profileId', auth, async (req, res) => {
-  const isMatch = await Match.findOne({ userId: req.user.userId, profileId: req.params.profileId });
-  if (!isMatch) return res.status(403).json({ error: 'Pas de match avec cet utilisateur' });
-  const convId = [req.user.userId, req.params.profileId].sort().join('_');
-  const msgs = await Message.find({ convId }).sort({ date: 1 });
-  res.json(msgs);
-});
-
-app.post('/api/messages/:profileId', auth,
-  body('text').trim().isLength({ min: 1, max: 1000 }),
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ error: 'Message invalide' });
-
-    const isMatch = await Match.findOne({ userId: req.user.userId, profileId: req.params.profileId });
-    if (!isMatch) return res.status(403).json({ error: 'Pas de match avec cet utilisateur' });
-
-    const convId = [req.user.userId, req.params.profileId].sort().join('_');
-    const msg = await Message.create({
-      _id: uuidv4(),
-      convId,
-      from: req.user.userId,
-      text: sanitize(req.body.text, 1000),
-    });
-    res.status(201).json(msg);
-  }
-);
 
 // ─── ONLINE STATUS ────────────────────────────────────────────────────────────
 
@@ -721,9 +583,9 @@ app.put('/api/admin/change-password',
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   const [totalUsers, totalMatches, totalMessages, totalSwipes] = await Promise.all([
     User.countDocuments(),
-    Match.countDocuments(),
+    UserMatch.countDocuments(),
     Message.countDocuments(),
-    Swipe.countDocuments(),
+    UserSwipe.countDocuments(),
   ]);
   res.json({ totalUsers, totalMatches, totalMessages, totalSwipes });
 });
@@ -753,67 +615,6 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
   if (user.isAdmin) return res.status(403).json({ error: 'Impossible de supprimer un admin' });
   await User.deleteOne({ _id: req.params.id });
-  await Profile.deleteOne({ _id: req.params.id });
-  res.json({ success: true });
-});
-
-app.get('/api/admin/profiles', adminAuth, async (req, res) => {
-  const profiles = await Profile.find().lean();
-  res.json(profiles.map(p => ({ ...p, id: String(p._id) })));
-});
-
-app.post('/api/admin/profiles', adminAuth,
-  body('name').trim().isLength({ min: 2, max: 50 }),
-  body('age').isInt({ min: 18, max: 100 }),
-  body('city').trim().isLength({ max: 100 }),
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ error: 'Données invalides' });
-    const { name, age, city, bio, tags, color, compatibility, photo } = req.body;
-    const COLORS = [
-      'from-pink-400 to-purple-500', 'from-blue-400 to-cyan-500',
-      'from-orange-400 to-red-500',  'from-green-400 to-teal-500',
-      'from-yellow-400 to-orange-500','from-purple-400 to-pink-500',
-      'from-indigo-400 to-blue-500', 'from-red-400 to-pink-500',
-      'from-emerald-400 to-green-500',
-    ];
-    const p = await Profile.create({
-      _id: `profile-${uuidv4().slice(0, 8)}`,
-      name: sanitize(name, 50),
-      age: parseInt(age),
-      city: sanitize(city, 100),
-      bio: sanitize(bio || '', 500),
-      tags: Array.isArray(tags) ? tags.slice(0, 10).map(t => sanitize(t, 30)) : [],
-      initials: name.slice(0, 2).toUpperCase(),
-      color: color || COLORS[Math.floor(Math.random() * COLORS.length)],
-      compatibility: compatibility
-        ? Math.min(100, Math.max(0, parseInt(compatibility)))
-        : Math.floor(Math.random() * 35) + 60,
-      photo: photo || '',
-    });
-    res.status(201).json(p);
-  }
-);
-
-app.put('/api/admin/profiles/:id', adminAuth, async (req, res) => {
-  const p = await Profile.findOne({ _id: req.params.id });
-  if (!p) return res.status(404).json({ error: 'Profil non trouvé' });
-  const { name, age, city, bio, tags, color, compatibility, photo } = req.body;
-  if (name  !== undefined) { p.name = sanitize(name, 50); p.initials = name.slice(0, 2).toUpperCase(); }
-  if (age   !== undefined) p.age           = parseInt(age);
-  if (city  !== undefined) p.city          = sanitize(city, 100);
-  if (bio   !== undefined) p.bio           = sanitize(bio, 500);
-  if (Array.isArray(tags)) p.tags          = tags.slice(0, 10).map(t => sanitize(t, 30));
-  if (color !== undefined) p.color         = color;
-  if (compatibility !== undefined) p.compatibility = Math.min(100, Math.max(0, parseInt(compatibility)));
-  if (photo !== undefined) p.photo         = photo;
-  await p.save();
-  res.json(p);
-});
-
-app.delete('/api/admin/profiles/:id', adminAuth, async (req, res) => {
-  const result = await Profile.deleteOne({ _id: req.params.id });
-  if (result.deletedCount === 0) return res.status(404).json({ error: 'Profil non trouvé' });
   res.json({ success: true });
 });
 
@@ -841,19 +642,14 @@ app.post('/api/admin/force-match', adminAuth, async (req, res) => {
 });
 
 app.get('/api/admin/matches', adminAuth, async (req, res) => {
-  const matches = await Match.find();
-  const userIds    = [...new Set(matches.map(m => m.userId))];
-  const profileIds = [...new Set(matches.map(m => m.profileId))];
-  const [users, profiles] = await Promise.all([
-    User.find({ _id: { $in: userIds } }).select('name'),
-    Profile.find({ _id: { $in: profileIds } }).select('name'),
-  ]);
-  const userMap    = Object.fromEntries(users.map(u => [u._id, u.name]));
-  const profileMap = Object.fromEntries(profiles.map(p => [p._id, p.name]));
+  const matches = await UserMatch.find().sort({ date: -1 }).limit(200);
+  const ids = [...new Set([...matches.map(m => m.user1Id), ...matches.map(m => m.user2Id)])];
+  const users = await User.find({ _id: { $in: ids } }).select('name');
+  const userMap = Object.fromEntries(users.map(u => [u._id, u.name]));
   res.json(matches.map(m => ({
     ...m.toObject(),
-    userName:    userMap[m.userId]       || 'Inconnu',
-    profileName: profileMap[m.profileId] || 'Inconnu',
+    userName:    userMap[m.user1Id] || 'Inconnu',
+    profileName: userMap[m.user2Id] || 'Inconnu',
   })));
 });
 

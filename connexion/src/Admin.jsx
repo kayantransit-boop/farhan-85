@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft, Shield, Users, Heart, MessageCircle, Activity,
-  Trash2, Edit3, Plus, Check, X, MapPin, Star, Ban, Crown, KeyRound, Eye, EyeOff
+  Trash2, Edit3, Check, X, Star, Ban, Crown, KeyRound, Eye, EyeOff
 } from 'lucide-react';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -15,14 +15,6 @@ function req(method, path, body) {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
 }
-
-const COLORS = [
-  'from-pink-400 to-purple-500', 'from-blue-400 to-cyan-500',
-  'from-orange-400 to-red-500',  'from-green-400 to-teal-500',
-  'from-yellow-400 to-orange-500','from-purple-400 to-pink-500',
-  'from-indigo-400 to-blue-500', 'from-red-400 to-pink-500',
-  'from-emerald-400 to-green-500','from-violet-400 to-fuchsia-500',
-];
 
 // ─── STAT CARD ────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, color }) {
@@ -181,126 +173,6 @@ function UsersTab() {
             <button onClick={save} disabled={saving}
               className={`w-full py-3 rounded-xl ${G} text-white font-bold text-sm disabled:opacity-60`}>
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ─── PROFILES TAB ─────────────────────────────────────────────────────────────
-function ProfilesTab() {
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // null | 'add' | profile object
-  const [draft, setDraft] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => { load(); }, []);
-
-  const load = () => {
-    setLoading(true);
-    req('GET', '/admin/profiles').then(setProfiles).catch(console.error).finally(() => setLoading(false));
-  };
-
-  const openAdd  = () => { setModal('add'); setDraft({ name:'', age:'', city:'', bio:'', tags:'', color: COLORS[0], compatibility: 80 }); setError(''); };
-  const openEdit = (p)  => { setModal(p); setDraft({ name: p.name, age: p.age, city: p.city, bio: p.bio, tags: (p.tags||[]).join(', '), color: p.color, compatibility: p.compatibility }); setError(''); };
-
-  const save = async () => {
-    setSaving(true); setError('');
-    const payload = {
-      ...draft,
-      age: parseInt(draft.age),
-      tags: draft.tags ? draft.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      compatibility: parseInt(draft.compatibility) || 75,
-    };
-    try {
-      if (modal === 'add') await req('POST', '/admin/profiles', payload);
-      else                  await req('PUT', `/admin/profiles/${modal.id}`, payload);
-      setModal(null); load();
-    } catch (e) { setError(e.message); }
-    finally { setSaving(false); }
-  };
-
-  const del = async (p) => {
-    if (!confirm(`Supprimer le profil de ${p.name} ?`)) return;
-    try { await req('DELETE', `/admin/profiles/${p.id}`); load(); }
-    catch (e) { alert(e.message); }
-  };
-
-  const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.value }));
-
-  if (loading) return <div className="flex justify-center pt-16"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#0089CF] animate-spin" /></div>;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-gray-400 text-sm">{profiles.length} profil{profiles.length !== 1 ? 's' : ''}</p>
-        <button onClick={openAdd} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl ${G} text-white text-xs font-bold shadow-sm`}>
-          <Plus className="w-3.5 h-3.5" /> Ajouter
-        </button>
-      </div>
-
-      {profiles.map(p => (
-        <div key={p.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${p.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-              {p.initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="font-bold text-gray-900 text-sm">{p.name}, {p.age}</span>
-              <div className="flex items-center gap-1 text-gray-400 text-xs mt-0.5">
-                <MapPin className="w-3 h-3" />{p.city}
-                <span className="ml-2 text-[#0089CF] font-semibold">{p.compatibility}%</span>
-              </div>
-              {(p.tags||[]).length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {p.tags.slice(0,3).map(t => (
-                    <span key={t} className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px]">{t}</span>
-                  ))}
-                  {p.tags.length > 3 && <span className="text-gray-400 text-[10px]">+{p.tags.length - 3}</span>}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-1.5 flex-shrink-0">
-              <button onClick={() => openEdit(p)} className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
-                <Edit3 className="w-3.5 h-3.5 text-blue-500" />
-              </button>
-              <button onClick={() => del(p)} className="p-2 rounded-xl bg-red-50 hover:bg-red-100 transition-colors">
-                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {modal && (
-        <Modal title={modal === 'add' ? 'Ajouter un profil' : `Modifier — ${modal.name}`} onClose={() => setModal(null)}>
-          {error && <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm">{error}</div>}
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <div className="flex-1"><Field label="Prénom"><input value={draft.name} onChange={set('name')} className={inp} /></Field></div>
-              <div style={{width:'75px'}}><Field label="Âge"><input type="number" value={draft.age} onChange={set('age')} className={inp} /></Field></div>
-            </div>
-            <Field label="Ville"><input value={draft.city} onChange={set('city')} className={inp} /></Field>
-            <Field label="Bio"><textarea value={draft.bio} onChange={set('bio')} rows={2} className={`${inp} resize-none`} /></Field>
-            <Field label="Tags (séparés par virgule)"><input value={draft.tags} onChange={set('tags')} placeholder="Voyage, Musique, Sport" className={inp} /></Field>
-            <Field label={`Compatibilité : ${draft.compatibility}%`}>
-              <input type="range" min="0" max="100" value={draft.compatibility} onChange={set('compatibility')} className="w-full accent-[#0089CF]" />
-            </Field>
-            <Field label="Couleur du profil">
-              <div className="flex flex-wrap gap-2 mt-1">
-                {COLORS.map(c => (
-                  <button key={c} onClick={() => setDraft(d => ({...d, color: c}))}
-                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${c} ${draft.color === c ? 'ring-2 ring-offset-1 ring-[#0089CF]' : ''}`} />
-                ))}
-              </div>
-            </Field>
-            <button onClick={save} disabled={saving}
-              className={`w-full py-3 rounded-xl ${G} text-white font-bold text-sm disabled:opacity-60`}>
-              {saving ? 'Sauvegarde...' : modal === 'add' ? 'Ajouter' : 'Sauvegarder'}
             </button>
           </div>
         </Modal>
@@ -485,7 +357,6 @@ export default function AdminPanel({ onBack }) {
   const tabs = [
     { id: 'stats',    label: 'Stats',     icon: Activity },
     { id: 'users',    label: 'Membres',   icon: Users },
-    { id: 'profiles', label: 'Profils',   icon: Heart },
     { id: 'matches',  label: 'Matchs',    icon: Star },
     { id: 'messages', label: 'Messages',  icon: MessageCircle },
   ];
@@ -525,7 +396,6 @@ export default function AdminPanel({ onBack }) {
         <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
           {tab === 'stats'    && <StatsTab />}
           {tab === 'users'    && <UsersTab />}
-          {tab === 'profiles' && <ProfilesTab />}
           {tab === 'matches'  && <MatchesTab />}
           {tab === 'messages' && <MessagesTab />}
         </div>
