@@ -227,19 +227,6 @@ app.post('/api/auth/register',
       photo: safePhoto,
     });
 
-    await Profile.create({
-      _id: userId,
-      name: user.name,
-      age: 25,
-      city: 'Djibouti',
-      bio: '',
-      tags: [],
-      initials: user.name.slice(0, 2).toUpperCase(),
-      color: 'from-violet-400 to-fuchsia-500',
-      compatibility: Math.floor(Math.random() * 30) + 65,
-      photo: safePhoto,
-    });
-
     const token = jwt.sign({ userId, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     const { password: _, ...safeUser } = user.toObject();
     res.status(201).json({ token, user: { ...safeUser, id: userId } });
@@ -542,16 +529,6 @@ app.put('/api/profile', auth,
     if (photo === '') user.photo = '';
     if (Array.isArray(photos)) user.photos = photos.slice(0, 5).filter(p => typeof p === 'string' && p.startsWith('data:image/'));
     await user.save();
-
-    await Profile.findByIdAndUpdate(user._id, {
-      name: user.name,
-      age: user.age,
-      city: user.city,
-      bio: user.bio,
-      tags: user.tags,
-      photo: user.photo,
-      initials: user.name.slice(0, 2).toUpperCase(),
-    });
 
     const { password, ...safeUser } = user.toObject();
     res.json(safeUser);
