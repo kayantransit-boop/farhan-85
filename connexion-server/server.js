@@ -1,6 +1,18 @@
 require('dotenv').config();
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+
+// Patch SRV resolution to use Google DNS (Render's resolver fails on Atlas SRV records)
+const _googleResolver = new dns.Resolver();
+_googleResolver.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+
+dns.resolveSrv = (hostname, cb) => _googleResolver.resolveSrv(hostname, cb);
+dns.promises.resolveSrv = (hostname) => _googleResolver.promises.resolveSrv(hostname);
+
+// Diagnostic test
+_googleResolver.resolveSrv('_mongodb._tcp.djibouti-rencontre.kqagx05.mongodb.net', (err, records) => {
+  if (err) console.error('🔴 DNS SRV Google test échoué:', err.code, err.message);
+  else console.log('🟢 DNS SRV Google test OK —', records.length, 'records');
+});
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
