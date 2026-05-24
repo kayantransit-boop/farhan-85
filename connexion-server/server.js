@@ -6,7 +6,9 @@ const _googleResolver = new dns.Resolver();
 _googleResolver.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 dns.resolveSrv = (hostname, cb) => _googleResolver.resolveSrv(hostname, cb);
-dns.promises.resolveSrv = (hostname) => _googleResolver.promises.resolveSrv(hostname);
+dns.promises.resolveSrv = (hostname) => new Promise((resolve, reject) =>
+  _googleResolver.resolveSrv(hostname, (err, records) => err ? reject(err) : resolve(records))
+);
 
 // Diagnostic test
 _googleResolver.resolveSrv('_mongodb._tcp.djibouti-rencontre.kqagx05.mongodb.net', (err, records) => {
