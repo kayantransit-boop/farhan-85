@@ -15,8 +15,9 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) { console.error('FATAL: JWT_SECRET manquant dans .env'); process.exit(1); }
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = (process.env.MONGODB_URI || '').replace(/[^\x20-\x7E]/g, '').trim();
 if (!MONGODB_URI) { console.error('FATAL: MONGODB_URI manquant dans .env'); process.exit(1); }
+console.log('🔍 MongoDB URI (masqué):', MONGODB_URI.replace(/:([^@]+)@/, ':***@'));
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
