@@ -183,6 +183,7 @@ function connectOnce() {
     _dbPromise = mongoose.connect(MONGODB_URI, {
       serverSelectionTimeoutMS: 20000,
       connectTimeoutMS: 20000,
+      family: 4,
     }).then(async () => {
       console.log('✅ MongoDB connecté');
       await initData();
