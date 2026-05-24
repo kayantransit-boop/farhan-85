@@ -1557,6 +1557,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    api.ping(); // wake up Render server before user action
     const token = localStorage.getItem('token');
     if (!token) { setAppState('landing'); return; }
     api.getMe()

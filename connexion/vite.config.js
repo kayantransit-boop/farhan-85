@@ -33,9 +33,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/djibouti-rencontre-api\.vercel\.app\/api\/.*/i,
+            urlPattern: /^https:\/\/farhan-85\.onrender\.com\/api\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', networkTimeoutSeconds: 10 },
+            options: { cacheName: 'api-cache', networkTimeoutSeconds: 15 },
           },
           {
             urlPattern: /^https:\/\/djib-rencontre\.site\/api\/.*/i,

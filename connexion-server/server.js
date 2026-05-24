@@ -118,6 +118,8 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
+app.get('/api/ping', (req, res) => res.json({ ok: true }));
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 function sanitize(str, max = 500) {
@@ -178,10 +180,14 @@ async function initData() {
 let _dbPromise = null;
 function connectOnce() {
   if (!_dbPromise) {
-    _dbPromise = mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 }).then(async () => {
+    _dbPromise = mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 20000,
+      connectTimeoutMS: 20000,
+    }).then(async () => {
       console.log('✅ MongoDB connecté');
       await initData();
     }).catch(err => {
+      console.error('❌ MongoDB erreur:', err.message);
       _dbPromise = null;
       throw err;
     });
@@ -671,20 +677,9 @@ app.use((err, req, res, _next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 
-if (!process.env.VERCEL) {
-  mongoose.connect(MONGODB_URI)
-    .then(async () => {
-      console.log('✅ MongoDB connecté');
-      await initData();
-      app.listen(PORT, () => {
-        console.log(`\n🔥 Serveur Djibouti-Rencontre démarré sur http://localhost:${PORT}`);
-        console.log('🔒 Sécurité : MongoDB + JWT + bcrypt + Helmet + Rate Limiting\n');
-      });
-    })
-    .catch(err => {
-      console.error('❌ Erreur de connexion MongoDB :', err.message);
-      process.exit(1);
-    });
-}
+app.listen(PORT, () => {
+  console.log(`\n🔥 Serveur Djibouti-Rencontre démarré sur http://localhost:${PORT}`);
+  console.log('🔒 Sécurité : MongoDB + JWT + bcrypt + Helmet + Rate Limiting\n');
+});
 
 module.exports = app;

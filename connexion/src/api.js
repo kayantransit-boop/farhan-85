@@ -8,16 +8,29 @@ function headers() {
   };
 }
 
-async function req(method, path, body) {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers: headers(),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Erreur serveur');
-  return data;
+// Retry once on network failure (handles Render cold start ~30s delay)
+async function req(method, path, body, retry = true) {
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: headers(),
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+    return data;
+  } catch (err) {
+    if (retry && err.message === 'Failed to fetch') {
+      // Server waking up (Render free tier) — wait 4s then retry once
+      await new Promise(r => setTimeout(r, 4000));
+      return req(method, path, body, false);
+    }
+    throw err;
+  }
 }
+
+// Call on app start to wake up the Render server before user action
+export const ping = () => fetch(`${BASE}/ping`).catch(() => {});
 
 export const login             = (email, password)            => req('POST',   '/auth/login',                        { email, password });
 export const register          = (email, password, name, photo) => req('POST', '/auth/register',                    { email, password, name, photo });
