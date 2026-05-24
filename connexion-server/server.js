@@ -5,10 +5,24 @@ const dns = require('dns');
 const _googleResolver = new dns.Resolver();
 _googleResolver.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
-dns.resolveSrv = (hostname, cb) => _googleResolver.resolveSrv(hostname, cb);
-dns.promises.resolveSrv = (hostname) => new Promise((resolve, reject) =>
-  _googleResolver.resolveSrv(hostname, (err, records) => err ? reject(err) : resolve(records))
-);
+function _srvViaGoogle(hostname, cb) {
+  _googleResolver.resolveSrv(hostname, cb);
+}
+function _srvViaGooglePromise(hostname) {
+  return new Promise((resolve, reject) =>
+    _googleResolver.resolveSrv(hostname, (err, records) => err ? reject(err) : resolve(records))
+  );
+}
+
+// Patch callback style
+dns.resolveSrv = _srvViaGoogle;
+// Patch dns.promises (require('dns').promises)
+dns.promises.resolveSrv = _srvViaGooglePromise;
+// Patch dns/promises (require('dns/promises')) — used by MongoDB driver 6.x
+try {
+  const dnsP = require('dns/promises');
+  dnsP.resolveSrv = _srvViaGooglePromise;
+} catch (e) { /* older Node — no dns/promises module */ }
 
 // Diagnostic test
 _googleResolver.resolveSrv('_mongodb._tcp.djibouti-rencontre.kqagx05.mongodb.net', (err, records) => {
